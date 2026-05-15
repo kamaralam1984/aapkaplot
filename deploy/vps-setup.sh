@@ -70,7 +70,10 @@ fi
 
 # ── Install + build ─────────────────────────────────────────────────────
 log "Installing npm deps (skipping heavy optional SDKs)…"
-npm ci --omit=optional --no-audit --no-fund
+if ! npm ci --omit=optional --no-audit --no-fund 2>/dev/null; then
+  warn "npm ci failed (lockfile drift) — falling back to npm install"
+  npm install --omit=optional --no-audit --no-fund
+fi
 
 log "Building Next.js (production)…"
 npm run build
