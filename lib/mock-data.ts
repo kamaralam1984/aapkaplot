@@ -1,0 +1,264 @@
+import type { AICategory, Property, GeoPoint } from "./types";
+import { generateMockProperties } from "./property-generator";
+
+/** Anchor: Kolkata (Park Street area). */
+export const DEFAULT_ORIGIN: GeoPoint = { lat: 22.5535, lng: 88.3528 };
+
+export const AI_CATEGORIES: AICategory[] = [
+  { id: "near-you", label: "Near You", tone: "emerald" },
+  { id: "best-investment", label: "Best Investment", tone: "sky" },
+  { id: "high-demand", label: "High Demand", tone: "amber" },
+  { id: "price-dropped", label: "Price Dropped", tone: "rose" },
+  { id: "near-metro", label: "Near Metro", tone: "violet" },
+];
+
+export const PROPERTY_CATEGORIES = [
+  { id: "plot", label: "Plots", icon: "trees" },
+  { id: "flat", label: "Flats", icon: "building" },
+  { id: "house", label: "Houses", icon: "home" },
+  { id: "commercial", label: "Commercial", icon: "building-2" },
+  { id: "agriculture", label: "Agriculture Land", icon: "sprout" },
+  { id: "independent", label: "Independent House", icon: "house" },
+  { id: "villa", label: "Villas", icon: "castle" },
+  { id: "shop", label: "Shops", icon: "store" },
+  { id: "office", label: "Office Space", icon: "briefcase" },
+  { id: "warehouse", label: "Warehouse", icon: "warehouse" },
+] as const;
+
+const IMG = {
+  plot:
+    "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=70",
+  flat:
+    "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=70",
+  flat2:
+    "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=70",
+  house:
+    "https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=1200&q=70",
+  villa:
+    "https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=1200&q=70",
+  shop:
+    "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=70",
+  interior:
+    "https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=1200&q=70",
+  modern:
+    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=70",
+};
+
+const HERO_PROPERTIES: Property[] = [
+  {
+    id: "p_001",
+    title: "Residential Plot",
+    kind: "plot",
+    intent: "buy",
+    priceInr: 18_50_000,
+    areaSqft: 1200,
+    location: {
+      locality: "Uttarpara",
+      city: "Hooghly",
+      state: "West Bengal",
+      coords: { lat: 22.6705, lng: 88.3489 },
+    },
+    media: { cover: IMG.plot },
+    verified: true,
+    trustScore: 92,
+    postedAt: "2026-05-10T10:00:00Z",
+    badges: ["near-you"],
+  },
+  {
+    id: "p_002",
+    title: "2BHK Flat",
+    kind: "flat",
+    intent: "buy",
+    priceInr: 32_00_000,
+    areaSqft: 850,
+    bhk: 2,
+    location: {
+      locality: "Sodepur",
+      city: "Kolkata",
+      state: "West Bengal",
+      coords: { lat: 22.6968, lng: 88.3873 },
+    },
+    media: { cover: IMG.flat },
+    verified: true,
+    trustScore: 88,
+    postedAt: "2026-05-11T09:30:00Z",
+  },
+  {
+    id: "p_003",
+    title: "Independent House",
+    kind: "house",
+    intent: "buy",
+    priceInr: 55_00_000,
+    areaSqft: 1440,
+    bhk: 3,
+    location: {
+      locality: "New Town",
+      city: "Kolkata",
+      state: "West Bengal",
+      coords: { lat: 22.5786, lng: 88.4636 },
+    },
+    media: { cover: IMG.house },
+    verified: true,
+    trustScore: 94,
+    postedAt: "2026-05-12T11:00:00Z",
+    badges: ["high-demand"],
+  },
+  {
+    id: "p_004",
+    title: "3BHK Flat",
+    kind: "flat",
+    intent: "buy",
+    priceInr: 45_00_000,
+    areaSqft: 1200,
+    bhk: 3,
+    location: {
+      locality: "Rajarhat",
+      city: "Kolkata",
+      state: "West Bengal",
+      coords: { lat: 22.6086, lng: 88.4515 },
+    },
+    media: { cover: IMG.flat2 },
+    verified: true,
+    trustScore: 90,
+    postedAt: "2026-05-09T13:00:00Z",
+  },
+  {
+    id: "p_005",
+    title: "Shop for Sale",
+    kind: "shop",
+    intent: "buy",
+    priceInr: 80_00_000,
+    areaSqft: 600,
+    location: {
+      locality: "Garia",
+      city: "Kolkata",
+      state: "West Bengal",
+      coords: { lat: 22.4624, lng: 88.3982 },
+    },
+    media: { cover: IMG.shop },
+    verified: true,
+    trustScore: 86,
+    postedAt: "2026-05-08T08:15:00Z",
+  },
+  {
+    id: "p_006",
+    title: "2BHK Flat",
+    kind: "flat",
+    intent: "buy",
+    priceInr: 28_00_000,
+    areaSqft: 800,
+    bhk: 2,
+    location: {
+      locality: "Zydeco",
+      city: "Kolkata",
+      state: "West Bengal",
+      coords: { lat: 22.5430, lng: 88.3445 },
+    },
+    media: { cover: IMG.modern },
+    verified: true,
+    trustScore: 91,
+    postedAt: "2026-05-13T07:45:00Z",
+    badges: ["near-you"],
+  },
+  {
+    id: "p_007",
+    title: "Plot for Sale",
+    kind: "plot",
+    intent: "buy",
+    priceInr: 15_75_000,
+    areaSqft: 1000,
+    location: {
+      locality: "Khardaha",
+      city: "Kolkata",
+      state: "West Bengal",
+      coords: { lat: 22.7194, lng: 88.3792 },
+    },
+    media: { cover: IMG.plot },
+    verified: true,
+    trustScore: 84,
+    postedAt: "2026-05-07T12:00:00Z",
+    badges: ["best-investment"],
+  },
+  {
+    id: "p_008",
+    title: "3BHK Flat",
+    kind: "flat",
+    intent: "buy",
+    priceInr: 48_50_000,
+    areaSqft: 1250,
+    bhk: 3,
+    location: {
+      locality: "New Town",
+      city: "Kolkata",
+      state: "West Bengal",
+      coords: { lat: 22.5826, lng: 88.4700 },
+    },
+    media: { cover: IMG.flat },
+    verified: true,
+    trustScore: 89,
+    postedAt: "2026-05-06T15:30:00Z",
+    badges: ["high-demand"],
+  },
+  {
+    id: "p_009",
+    title: "Independent House",
+    kind: "house",
+    intent: "buy",
+    priceInr: 53_00_000,
+    previousPriceInr: 58_00_000,
+    areaSqft: 1440,
+    bhk: 3,
+    location: {
+      locality: "Rajarhat",
+      city: "Kolkata",
+      state: "West Bengal",
+      coords: { lat: 22.6090, lng: 88.4495 },
+    },
+    media: { cover: IMG.villa },
+    verified: true,
+    trustScore: 87,
+    postedAt: "2026-05-05T17:00:00Z",
+    badges: ["price-dropped"],
+  },
+  {
+    id: "p_010",
+    title: "2BHK Flat",
+    kind: "flat",
+    intent: "buy",
+    priceInr: 31_00_000,
+    areaSqft: 850,
+    bhk: 2,
+    location: {
+      locality: "Belgachia",
+      city: "Kolkata",
+      state: "West Bengal",
+      coords: { lat: 22.6033, lng: 88.3795 },
+    },
+    media: { cover: IMG.interior },
+    verified: true,
+    trustScore: 90,
+    postedAt: "2026-05-04T18:00:00Z",
+    badges: ["near-metro"],
+  },
+];
+
+/** Full mock catalogue: 10 hand-curated hero listings + 110 generated. */
+export const MOCK_PROPERTIES: Property[] = [
+  ...HERO_PROPERTIES,
+  ...generateMockProperties(110),
+];
+
+/** Stat tiles shown under the hero search panel. */
+export const HERO_STATS = [
+  { id: "props", label: "Properties", value: "20,000+", icon: "home" },
+  { id: "ai", label: "Just for you", value: "AI Recommendations", icon: "sparkles" },
+  { id: "verified", label: "100% Trusted", value: "Verified Owners", icon: "badge-check" },
+  { id: "satellite", label: "Explore Real View", value: "Live Satellite View", icon: "satellite" },
+];
+
+export const WHY_FEATURES = [
+  { id: "ai", title: "AI Powered Search", body: "Get best results with AI", icon: "sparkles", tone: "emerald" as const },
+  { id: "satellite", title: "Live Satellite View", body: "See real view of property", icon: "satellite", tone: "sky" as const },
+  { id: "verified", title: "Verified Properties", body: "100% verified & trusted", icon: "shield-check", tone: "emerald" as const },
+  { id: "nearby", title: "Nearby Properties", body: "Find near you instantly", icon: "map-pin", tone: "rose" as const },
+];

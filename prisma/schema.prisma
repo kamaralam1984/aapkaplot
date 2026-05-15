@@ -1,0 +1,160 @@
+// AapKaPlot — initial schema. PostGIS extension is enabled so we can run
+// ST_DistanceSphere queries for nearby search; the Prisma client uses
+// Unsupported("geography") for the geo column and we read/write it through
+// raw SQL helpers in /server/property/geo.ts.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [postgis]
+}
+
+enum UserRole {
+  BUYER
+  SELLER
+  AGENT
+  ADMIN
+}
+
+enum PropertyKind {
+  PLOT
+  FLAT
+  HOUSE
+  VILLA
+  SHOP
+  OFFICE
+  WAREHOUSE
+  AGRICULTURE
+}
+
+enum ListingIntent {
+  BUY
+  RENT
+  SELL
+}
+
+enum ListingStatus {
+  DRAFT
+  PENDING_REVIEW
+  ACTIVE
+  PAUSED
+  SOLD
+  REJECTED
+}
+
+model User {
+  id           String    @id @default(cuid())
+  phone        String    @unique
+  email        String?   @unique
+  name         String?
+  role         UserRole  @default(BUYER)
+  passwordHash String?
+  phoneVerified DateTime?
+  emailVerified DateTime?
+  aadhaarVerified DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  properties   Property[]   @relation("OwnerProperties")
+  favorites    Favorite[]
+  leadsSent    Lead[]       @relation("LeadFromUser")
+  leadsReceived Lead[]      @relation("LeadToUser")
+  otpCodes     OtpCode[]
+}
+
+model Property {
+  id           String         @id @default(cuid())
+  title        String
+  description  String?
+  kind         PropertyKind
+  intent       ListingIntent
+  status       ListingStatus  @default(PENDING_REVIEW)
+
+  priceInr     Int
+  previousPriceInr Int?
+  areaSqft     Int
+  bhk          Int?
+
+  locality     String
+  city         String
+  state        String
+  pincode      String?
+
+  lat          Float
+  lng          Float
+  /// PostGIS geography point. Populated via trigger or raw SQL update.
+  geom         Unsupported("geography(Point,4326)")?
+
+  coverUrl     String
+  gallery      String[]
+  videoUrl     String?
+  satelliteUrl String?
+
+  verified     Boolean  @default(false)
+  trustScore   Int      @default(0)
+  amenities    String[]
+  aiBadges     String[]
+
+  ownerId      String
+  owner        User     @relation("OwnerProperties", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  favorites    Favorite[]
+  leads        Lead[]
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([city, state])
+  @@index([kind, intent])
+  @@index([priceInr])
+  /// Spatial index added in a migration:
+  /// CREATE INDEX property_geom_idx ON "Property" USING GIST (geom);
+}
+
+model Favorite {
+  id         String   @id @default(cuid())
+  userId     String
+  propertyId String
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, propertyId])
+}
+
+model Lead {
+  id          String   @id @default(cuid())
+  fromUserId  String
+  toUserId    String
+  propertyId  String
+  message     String?
+  via         String?
+  createdAt   DateTime @default(now())
+
+  fromUser    User     @relation("LeadFromUser", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser      User     @relation("LeadToUser", fields: [toUserId], references: [id], onDelete: Cascade)
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([toUserId, createdAt])
+}
+
+model OtpCode {
+  id         String   @id @default(cuid())
+  userId     String?
+  channel    String   // "phone" | "email"
+  identifier String   // phone or email used
+  codeHash   String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([identifier, channel, createdAt])
+}

@@ -1,0 +1,35 @@
+# AapKaPlot — Cloudflare Pages config.
+# Deploy with:
+#   npx wrangler pages deploy ./.next --project-name aapkaplot
+# Or wire to git in the dashboard; this file documents the production target.
+
+name = "aapkaplot"
+compatibility_date = "2026-05-15"
+compatibility_flags = ["nodejs_compat"]
+
+# Build output produced by `next build` (with @cloudflare/next-on-pages adapter).
+pages_build_output_dir = ".vercel/output/static"
+
+# ─── Environment variables wired into the Pages runtime ────────────────
+# Set the *secret* values via the dashboard or:
+#   wrangler pages secret put <NAME> --project-name aapkaplot
+# Anything below is the non-secret part safe to commit.
+
+[vars]
+NEXT_PUBLIC_SITE_URL = "https://aapkaplot.com"
+
+# ─── R2 binding (Step A) ─────────────────────────────────────────────
+# Create with: wrangler r2 bucket create aapkaplot-media
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "aapkaplot-media"
+preview_bucket_name = "aapkaplot-media-preview"
+
+# ─── KV binding for OTP / session store (optional) ───────────────────
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "REPLACE_WITH_KV_ID"
+
+# ─── Workers AI binding (Step D) ─────────────────────────────────────
+[ai]
+binding = "AI"
