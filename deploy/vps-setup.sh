@@ -70,10 +70,9 @@ fi
 
 # ── Install + build ─────────────────────────────────────────────────────
 log "Installing npm deps (skipping heavy optional SDKs)…"
-if ! npm ci --omit=optional --no-audit --no-fund 2>/dev/null; then
-  warn "npm ci failed (lockfile drift) — falling back to npm install"
-  npm install --omit=optional --no-audit --no-fund
-fi
+# Always use `npm install` to tolerate lockfile drift introduced by Cloudflare
+# Pages dev deps (which target Node 22). `npm ci` is too strict for our flow.
+npm install --omit=optional --no-audit --no-fund --loglevel=error
 
 log "Building Next.js (production)…"
 npm run build
