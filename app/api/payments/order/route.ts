@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSession } from "@/lib/auth-server";
+import { importOptional } from "@/lib/optional-import";
 
 const PLAN_PRICE: Record<string, number> = {
   spotlight: 499,
@@ -36,8 +37,9 @@ export async function POST(req: Request) {
   // 1) Real Razorpay path — requires RAZORPAY_KEY_ID + RAZORPAY_KEY_SECRET.
   if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
     try {
-      // @ts-expect-error — SDK is optional; resolved at runtime only when present.
-      const Razorpay = (await import("razorpay")).default;
+      const mod = await importOptional<any>("razorpay");
+      if (!mod) throw new Error("razorpay_sdk_missing");
+      const Razorpay = mod.default ?? mod;
       const client = new Razorpay({
         key_id: process.env.RAZORPAY_KEY_ID,
         key_secret: process.env.RAZORPAY_KEY_SECRET,

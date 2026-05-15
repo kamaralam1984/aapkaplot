@@ -118,7 +118,7 @@ export function Navbar() {
                   onClick={() => setMobileOpen(false)}
                   className="rounded-lg px-3 py-2.5 text-[15px] font-medium text-ink-800 hover:bg-ink-100"
                 >
-                  {l.label}
+                  {t(l.key)}
                 </Link>
               ))}
               <div className="mt-2 flex flex-col gap-2 border-t border-ink-200/70 pt-3">

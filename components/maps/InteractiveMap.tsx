@@ -142,7 +142,9 @@ export function InteractiveMap({
     // Add / update remaining
     for (const m of markers) {
       const existing = markerRefs.current.get(m.id);
-      const el = existing?.getElement() ?? document.createElement("button");
+      const el =
+        (existing?.getElement() as HTMLButtonElement | undefined) ??
+        document.createElement("button");
       el.className = cn("akp-price-marker", m.highlight && "is-highlight");
       el.type = "button";
       el.innerHTML = `<span>${m.label ?? ""}</span>`;

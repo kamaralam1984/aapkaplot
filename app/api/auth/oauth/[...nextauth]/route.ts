@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { buildProviders, isOAuthConfigured } from "@/lib/auth-providers";
+import { importOptional } from "@/lib/optional-import";
 
 /**
  * NextAuth catch-all route. Only mounts a real NextAuth handler when both
@@ -17,8 +18,9 @@ import { buildProviders, isOAuthConfigured } from "@/lib/auth-providers";
 async function loadHandler() {
   if (!isOAuthConfigured()) return null;
   try {
-    // @ts-expect-error — optional dep
-    const NextAuth = (await import("next-auth")).default;
+    const mod = await importOptional<any>("next-auth");
+    if (!mod) return null;
+    const NextAuth = mod.default ?? mod;
     const providers = await buildProviders();
     if (providers.length === 0) return null;
     return NextAuth({

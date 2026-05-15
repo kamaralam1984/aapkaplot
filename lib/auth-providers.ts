@@ -8,51 +8,44 @@
  *   Apple  : APPLE_CLIENT_ID, APPLE_CLIENT_SECRET
  *   GitHub : GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET
  */
+import { importOptional } from "./optional-import";
+
 export async function buildProviders() {
   const providers: any[] = [];
 
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-    try {
-      // @ts-expect-error — optional dep, only loaded when keys exist.
-      const Google = (await import("next-auth/providers/google")).default;
+    const mod = await importOptional<any>("next-auth/providers/google");
+    if (mod?.default) {
       providers.push(
-        Google({
+        mod.default({
           clientId: process.env.GOOGLE_CLIENT_ID,
           clientSecret: process.env.GOOGLE_CLIENT_SECRET,
         })
       );
-    } catch (err) {
-      console.warn("[auth] Google provider not installed:", (err as Error).message);
     }
   }
 
   if (process.env.APPLE_CLIENT_ID && process.env.APPLE_CLIENT_SECRET) {
-    try {
-      // @ts-expect-error — optional dep
-      const Apple = (await import("next-auth/providers/apple")).default;
+    const mod = await importOptional<any>("next-auth/providers/apple");
+    if (mod?.default) {
       providers.push(
-        Apple({
+        mod.default({
           clientId: process.env.APPLE_CLIENT_ID,
           clientSecret: process.env.APPLE_CLIENT_SECRET,
         })
       );
-    } catch (err) {
-      console.warn("[auth] Apple provider not installed:", (err as Error).message);
     }
   }
 
   if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
-    try {
-      // @ts-expect-error — optional dep
-      const GitHub = (await import("next-auth/providers/github")).default;
+    const mod = await importOptional<any>("next-auth/providers/github");
+    if (mod?.default) {
       providers.push(
-        GitHub({
+        mod.default({
           clientId: process.env.GITHUB_CLIENT_ID,
           clientSecret: process.env.GITHUB_CLIENT_SECRET,
         })
       );
-    } catch (err) {
-      console.warn("[auth] GitHub provider not installed:", (err as Error).message);
     }
   }
 

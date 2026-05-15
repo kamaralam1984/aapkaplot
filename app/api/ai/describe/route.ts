@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { importOptional } from "@/lib/optional-import";
 
 const Body = z.object({
   kind: z.enum(["plot", "flat", "house", "villa", "shop", "office", "warehouse", "agriculture"]),
@@ -88,8 +89,7 @@ async function generateViaWorkersAi(input: Input): Promise<string> {
 /* ---------- Claude integration (dynamic import so the SDK is optional) ---------- */
 
 async function generateViaClaude(input: Input): Promise<string> {
-  // @ts-expect-error — SDK is optional; resolved at runtime only when present.
-  const mod = await import("@anthropic-ai/sdk").catch(() => null);
+  const mod = await importOptional<any>("@anthropic-ai/sdk");
   if (!mod) throw new Error("anthropic_sdk_unavailable");
   const Anthropic = (mod.default ?? mod.Anthropic) as any;
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });

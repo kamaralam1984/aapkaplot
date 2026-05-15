@@ -11,6 +11,8 @@
  *   R2_PUBLIC_BASE        — public delivery URL, e.g. https://media.aapkaplot.com
  */
 
+import { importOptional } from "./optional-import";
+
 export function isR2Configured(): boolean {
   return Boolean(
     process.env.R2_ACCOUNT_ID &&
@@ -30,8 +32,9 @@ export function publicUrlFor(key: string): string {
 
 /** Lazy-imported S3 client so the SDK is optional. */
 async function getClient() {
-  // @ts-expect-error — `@aws-sdk/client-s3` is an optional dep.
-  const { S3Client } = await import("@aws-sdk/client-s3");
+  const mod = await importOptional<any>("@aws-sdk/client-s3");
+  if (!mod) throw new Error("aws_sdk_missing");
+  const { S3Client } = mod;
   return new S3Client({
     region: "auto",
     endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
@@ -50,8 +53,9 @@ export async function putObject(
   if (!isR2Configured()) {
     throw new Error("R2 is not configured — set R2_* env vars in .env.local");
   }
-  // @ts-expect-error — optional dep
-  const { PutObjectCommand } = await import("@aws-sdk/client-s3");
+  const mod = await importOptional<any>("@aws-sdk/client-s3");
+  if (!mod) throw new Error("aws_sdk_missing");
+  const { PutObjectCommand } = mod;
   const client = await getClient();
   await client.send(
     new PutObjectCommand({

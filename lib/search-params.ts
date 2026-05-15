@@ -20,7 +20,7 @@ export interface ParsedSearchFilters {
   areaMax?: number;
   parking?: boolean;
   furnishing?: "unfurnished" | "semi" | "full";
-  nearby?: ("school" | "metro" | "hospital" | "market")[];
+  nearby: ("school" | "metro" | "hospital" | "market")[];
   verifiedOnly?: boolean;
   amenities: AmenityId[];
   radiusKm?: number;
