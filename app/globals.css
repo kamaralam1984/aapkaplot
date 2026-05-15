@@ -18,6 +18,12 @@
 }
 
 @layer base {
+  html, body {
+    /* Prevent any element with negative offsets or absolute positioning
+       from creating a horizontal scrollbar / blank gutter on wide screens. */
+    overflow-x: clip;
+    max-width: 100vw;
+  }
   html {
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
@@ -26,6 +32,7 @@
   body {
     @apply bg-surface text-ink-900 font-sans antialiased;
     font-feature-settings: "cv11", "ss01", "ss03";
+    min-height: 100dvh;
   }
   ::selection {
     background: rgba(16, 185, 129, 0.18);

@@ -8,7 +8,8 @@ interface ContainerProps extends React.HTMLAttributes<HTMLDivElement> {
 const sizeMap = {
   narrow: "max-w-4xl",
   default: "max-w-7xl",
-  wide: "max-w-[1440px]",
+  // Bumped up so ultra-wide monitors (2K / 4K) don't show empty gutters.
+  wide: "max-w-[1440px] 2xl:max-w-[1600px] 3xl:max-w-[1800px]",
 };
 
 export function Container({

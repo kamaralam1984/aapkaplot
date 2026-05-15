@@ -45,8 +45,11 @@ export function Hero() {
     <section className="relative overflow-hidden bg-hero-radial">
       {/* Decorative grid */}
       <div className="absolute inset-0 grid-mask opacity-60" aria-hidden />
-      <Container size="wide" className="relative pb-10 pt-10 lg:pb-16 lg:pt-14">
-        <div className="grid items-start gap-10 lg:grid-cols-[1.05fr_1fr] xl:gap-12">
+      <Container
+        size="wide"
+        className="relative flex min-h-[calc(100dvh-64px)] flex-col justify-center pb-10 pt-6 lg:pb-16 lg:pt-10"
+      >
+        <div className="grid items-center gap-8 lg:grid-cols-[1.1fr_1fr] xl:gap-12 2xl:gap-16">
           {/* Left: copy + search */}
           <div>
             <motion.div
@@ -126,13 +129,14 @@ export function Hero() {
           </div>
 
           {/* Right: map preview + floating cards */}
-          <div className="relative lg:pt-2">
+          <div className="relative">
             <MapPreview properties={nearby} />
-            {/* Floating property cards over the map */}
+            {/* Floating property cards — clamped inside the column so they
+                never cause horizontal overflow on any viewport. */}
             {nearby[0] && (
               <FloatingPropertyCard
                 property={nearby[0]}
-                position={{ bottom: "12%", left: "-2%" }}
+                position={{ bottom: "10%", left: "2%" }}
                 delay={0.4}
                 className="hidden xl:block"
               />
@@ -140,7 +144,7 @@ export function Hero() {
             {nearby[1] && (
               <FloatingPropertyCard
                 property={nearby[1]}
-                position={{ top: "32%", right: "-6%" }}
+                position={{ top: "28%", right: "2%" }}
                 delay={0.6}
                 className="hidden xl:block"
               />
