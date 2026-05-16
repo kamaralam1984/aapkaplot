@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
+import { writeFile, mkdir } from "node:fs/promises";
+import { join } from "node:path";
 import { getSession } from "@/lib/auth-server";
-import { isR2Configured, putObject, buildKey } from "@/lib/r2";
 
-// 10 MB per file is plenty for property photos.
 const MAX_BYTES = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif", "video/mp4"];
+
+// Files are written to <repo>/public/uploads/<userid>/<key> and served
+// directly by Next.js static — URL becomes /uploads/<userid>/<key>.
+// The directory is gitignored so files persist across `git pull` deploys.
+const UPLOAD_DIR = join(process.cwd(), "public", "uploads");
 
 export const runtime = "nodejs";
 
@@ -24,7 +29,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "no_files" }, { status: 400 });
   }
 
-  // ── Validation pass first; reject the whole batch on any bad file. ──
   for (const f of files) {
     if (!ALLOWED_TYPES.includes(f.type)) {
       return NextResponse.json(
@@ -37,28 +41,22 @@ export async function POST(req: Request) {
     }
   }
 
-  // ── No R2 keys → return data URLs so /sell/new still demos end-to-end. ──
-  if (!isR2Configured()) {
-    const previews = await Promise.all(
-      files.map(async (f) => ({
-        key: `mock/${f.name}`,
-        url: `data:${f.type};base64,${Buffer.from(await f.arrayBuffer()).toString("base64")}`,
-        size: f.size,
-        type: f.type,
-        mode: "mock" as const,
-      }))
-    );
-    return NextResponse.json({ uploaded: previews, mode: "mock" });
-  }
+  const userDir = join(UPLOAD_DIR, session.uid);
+  await mkdir(userDir, { recursive: true });
 
-  // ── Real upload pass. ──
   const uploaded: { key: string; url: string; size: number; type: string }[] = [];
   for (const f of files) {
-    const key = buildKey(`property/${session.uid}`, f.name);
+    const ext = f.name.match(/\.[a-z0-9]+$/i)?.[0]?.toLowerCase() ?? "";
+    const filename = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}${ext}`;
     const buffer = Buffer.from(await f.arrayBuffer());
-    const { url } = await putObject(key, buffer, f.type);
-    uploaded.push({ key, url, size: f.size, type: f.type });
+    await writeFile(join(userDir, filename), buffer);
+    uploaded.push({
+      key: `${session.uid}/${filename}`,
+      url: `/uploads/${session.uid}/${filename}`,
+      size: f.size,
+      type: f.type,
+    });
   }
 
-  return NextResponse.json({ uploaded, mode: "r2" });
+  return NextResponse.json({ uploaded, mode: "local" });
 }

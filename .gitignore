@@ -11,3 +11,7 @@ dist
 .vercel
 .prisma
 coverage
+
+# User-uploaded property images (persist across deploys on the VPS)
+/public/uploads/*
+!/public/uploads/.gitkeep

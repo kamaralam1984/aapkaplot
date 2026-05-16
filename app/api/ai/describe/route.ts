@@ -31,23 +31,23 @@ export async function POST(req: Request) {
     );
   }
 
-  // 1) Real LLM path — only attempted when key is set.
-  if (process.env.ANTHROPIC_API_KEY) {
-    try {
-      const text = await generateViaClaude(parsed.data);
-      return NextResponse.json({ ok: true, source: "claude", description: text });
-    } catch (err) {
-      console.warn("[ai/describe] claude failed, falling back:", (err as Error).message);
-    }
-  }
-
-  // 2) Cloudflare Workers AI — uses CF_ACCOUNT_ID + CF_API_TOKEN
+  // 1) Cloudflare Workers AI (free, 100k req/day) — preferred when configured.
   if (process.env.CF_ACCOUNT_ID && process.env.CF_API_TOKEN) {
     try {
       const text = await generateViaWorkersAi(parsed.data);
       return NextResponse.json({ ok: true, source: "workers-ai", description: text });
     } catch (err) {
       console.warn("[ai/describe] workers-ai failed, falling back:", (err as Error).message);
+    }
+  }
+
+  // 2) Anthropic Claude — paid, opt-in only when ANTHROPIC_API_KEY is set.
+  if (process.env.ANTHROPIC_API_KEY) {
+    try {
+      const text = await generateViaClaude(parsed.data);
+      return NextResponse.json({ ok: true, source: "claude", description: text });
+    } catch (err) {
+      console.warn("[ai/describe] claude failed, falling back:", (err as Error).message);
     }
   }
 
