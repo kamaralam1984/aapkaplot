@@ -15,8 +15,8 @@ export default function AuthLayout({
         <footer className="mt-12 text-[12px] text-ink-500">
           <p>
             By continuing you agree to AapKaPlot's{" "}
-            <Link href="#" className="underline-offset-2 hover:underline">Terms</Link> &amp;{" "}
-            <Link href="#" className="underline-offset-2 hover:underline">Privacy</Link>.
+            <Link href="/terms" className="underline-offset-2 hover:underline">Terms</Link> &amp;{" "}
+            <Link href="/privacy" className="underline-offset-2 hover:underline">Privacy</Link>.
           </p>
         </footer>
       </div>

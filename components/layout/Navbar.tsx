@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Logo } from "./Logo";
 import { Container } from "./Container";
 import { LanguageToggle } from "./LanguageToggle";
+import { MoreMenu } from "./MoreMenu";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
@@ -65,17 +66,15 @@ export function Navbar() {
               {t(l.key)}
             </Link>
           ))}
-          <button className="inline-flex items-center gap-1 rounded-lg px-3 py-2 text-[14px] font-medium text-ink-700 transition hover:bg-ink-100/70 hover:text-ink-900">
-            {t("nav.more")} <ChevronDown className="h-4 w-4 text-ink-400" />
-          </button>
+          <MoreMenu label={t("nav.more")} />
         </nav>
 
         {/* Right actions */}
         <div className="ml-auto flex items-center gap-2">
           <LanguageToggle className="hidden md:inline-flex" />
-          <Button variant="outline" size="sm" className="hidden md:inline-flex">
-            {t("nav.post")}
-          </Button>
+          <Link href="/sell/new" className="hidden md:inline-flex">
+            <Button variant="outline" size="sm">{t("nav.post")}</Button>
+          </Link>
           <IconButton aria-label="Saved" className="hidden md:grid">
             <Heart className="h-[18px] w-[18px]" />
           </IconButton>
@@ -122,8 +121,12 @@ export function Navbar() {
                 </Link>
               ))}
               <div className="mt-2 flex flex-col gap-2 border-t border-ink-200/70 pt-3">
-                <Button variant="outline" size="md">Post Property</Button>
-                <Button variant="primary" size="md">Sign In / Register</Button>
+                <Link href="/sell/new" onClick={() => setMobileOpen(false)}>
+                  <Button variant="outline" size="md" className="w-full">Post Property</Button>
+                </Link>
+                <Link href="/auth/login" onClick={() => setMobileOpen(false)}>
+                  <Button variant="primary" size="md" className="w-full">Sign In / Register</Button>
+                </Link>
               </div>
             </Container>
           </motion.div>

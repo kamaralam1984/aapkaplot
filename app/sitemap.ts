@@ -7,12 +7,28 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
 
   const staticPages: MetadataRoute.Sitemap = [
-    { url: `${BASE}/`,         changeFrequency: "daily",   priority: 1.0, lastModified: now },
-    { url: `${BASE}/search`,   changeFrequency: "hourly",  priority: 0.9, lastModified: now },
-    { url: `${BASE}/pricing`,  changeFrequency: "weekly",  priority: 0.6, lastModified: now },
-    { url: `${BASE}/sell`,     changeFrequency: "weekly",  priority: 0.6, lastModified: now },
-    { url: `${BASE}/me`,       changeFrequency: "monthly", priority: 0.4, lastModified: now },
-    { url: `${BASE}/auth/login`, changeFrequency: "yearly", priority: 0.3, lastModified: now },
+    { url: `${BASE}/`,              changeFrequency: "daily",   priority: 1.0, lastModified: now },
+    { url: `${BASE}/search`,        changeFrequency: "hourly",  priority: 0.9, lastModified: now },
+    { url: `${BASE}/pricing`,       changeFrequency: "weekly",  priority: 0.7, lastModified: now },
+    { url: `${BASE}/sell`,          changeFrequency: "weekly",  priority: 0.6, lastModified: now },
+    { url: `${BASE}/sell/new`,      changeFrequency: "weekly",  priority: 0.6, lastModified: now },
+    { url: `${BASE}/referrals`,     changeFrequency: "weekly",  priority: 0.5, lastModified: now },
+    // Marketing pages
+    { url: `${BASE}/about`,         changeFrequency: "monthly", priority: 0.6, lastModified: now },
+    { url: `${BASE}/contact`,       changeFrequency: "monthly", priority: 0.6, lastModified: now },
+    { url: `${BASE}/ai-technology`, changeFrequency: "monthly", priority: 0.5, lastModified: now },
+    { url: `${BASE}/careers`,       changeFrequency: "weekly",  priority: 0.5, lastModified: now },
+    { url: `${BASE}/press`,         changeFrequency: "monthly", priority: 0.4, lastModified: now },
+    { url: `${BASE}/blog`,          changeFrequency: "weekly",  priority: 0.7, lastModified: now },
+    { url: `${BASE}/help`,          changeFrequency: "monthly", priority: 0.6, lastModified: now },
+    // Legal pages
+    { url: `${BASE}/privacy`,       changeFrequency: "yearly",  priority: 0.3, lastModified: now },
+    { url: `${BASE}/terms`,         changeFrequency: "yearly",  priority: 0.3, lastModified: now },
+    { url: `${BASE}/cookies`,       changeFrequency: "yearly",  priority: 0.3, lastModified: now },
+    { url: `${BASE}/sitemap`,       changeFrequency: "weekly",  priority: 0.4, lastModified: now },
+    // Auth — low priority, indexed for completeness
+    { url: `${BASE}/me`,            changeFrequency: "monthly", priority: 0.4, lastModified: now },
+    { url: `${BASE}/auth/login`,    changeFrequency: "yearly",  priority: 0.3, lastModified: now },
   ];
 
   const intents = ["buy", "rent"];

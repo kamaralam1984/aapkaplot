@@ -10,6 +10,8 @@ import { SortMenu } from "./SortMenu";
 import { ViewToggle } from "./ViewToggle";
 import { LocationAutocomplete } from "./LocationAutocomplete";
 import { Button } from "@/components/ui/Button";
+import { useToast } from "@/components/ui/Toast";
+import { track } from "@/lib/track";
 
 interface SearchToolbarProps {
   filters: ParsedSearchFilters;
@@ -59,11 +61,41 @@ export function SearchToolbar({ filters, total, onOpenFilters }: SearchToolbarPr
           <SortMenu value={filters.sort} />
           <ViewToggle value={filters.view} />
 
-          <Button variant="outline" size="sm" iconLeft={<Bookmark className="h-4 w-4" />}>
-            <span className="hidden md:inline">Save search</span>
-          </Button>
+          <SaveSearchButton filters={filters} />
         </div>
       </div>
     </div>
+  );
+}
+
+function SaveSearchButton({ filters }: { filters: ParsedSearchFilters }) {
+  const toast = useToast();
+  const onSave = () => {
+    const label =
+      filters.q ||
+      [filters.intent, filters.kind, filters.bhk ? `${filters.bhk} BHK` : null]
+        .filter(Boolean)
+        .join(" · ") ||
+      "Latest filters";
+    track("search_saved", { label });
+    toast.show({
+      kind: "success",
+      title: "Search saved",
+      description: `"${label}" — get notified when matching properties go live.`,
+      action: {
+        label: "View alerts",
+        onClick: () => (window.location.href = "/me/alerts"),
+      },
+    });
+  };
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={onSave}
+      iconLeft={<Bookmark className="h-4 w-4" />}
+    >
+      <span className="hidden md:inline">Save search</span>
+    </Button>
   );
 }

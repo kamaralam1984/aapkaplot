@@ -1,47 +1,50 @@
 import Link from "next/link";
-import { Facebook, Instagram, Twitter, Youtube, MapPin, Mail, Phone } from "lucide-react";
+import { MapPin, Mail, Phone } from "lucide-react";
 import { Logo } from "./Logo";
 import { Container } from "./Container";
+import { NewsletterForm } from "./NewsletterForm";
+import { FooterSocial } from "./FooterSocial";
 
 const COLUMNS = [
   {
     title: "Buy a Property",
     links: [
-      { label: "Flats in Kolkata", href: "#" },
-      { label: "Plots Near Me", href: "#" },
-      { label: "Independent Houses", href: "#" },
-      { label: "Villas", href: "#" },
-      { label: "Agricultural Land", href: "#" },
+      { label: "Flats in Kolkata",      href: "/in/kolkata/flats" },
+      { label: "Plots in Kolkata",      href: "/in/kolkata/plots" },
+      { label: "Houses in Bengaluru",   href: "/in/bengaluru/houses" },
+      { label: "Villas in Mumbai",      href: "/in/mumbai/villas" },
+      { label: "Agricultural Land",     href: "/search?kind=agriculture" },
     ],
   },
   {
     title: "Rent / Lease",
     links: [
-      { label: "Apartments for Rent", href: "#" },
-      { label: "PG / Coliving", href: "#" },
-      { label: "Commercial Spaces", href: "#" },
-      { label: "Shops for Lease", href: "#" },
-      { label: "Office Space", href: "#" },
+      { label: "Apartments for Rent", href: "/search?intent=rent&kind=flat" },
+      { label: "Independent Houses",  href: "/search?intent=rent&kind=house" },
+      { label: "Commercial Spaces",   href: "/search?intent=rent&kind=shop" },
+      { label: "Office Space",        href: "/search?intent=rent&kind=office" },
+      { label: "Warehouse",           href: "/search?intent=rent&kind=warehouse" },
     ],
   },
   {
     title: "For Owners",
     links: [
-      { label: "Post Property Free", href: "#" },
-      { label: "Premium Listings", href: "#" },
-      { label: "Verified Owner Badge", href: "#" },
-      { label: "Seller Dashboard", href: "#" },
-      { label: "Pricing", href: "#" },
+      { label: "Post Property Free",   href: "/sell/new" },
+      { label: "Premium Listings",     href: "/pricing" },
+      { label: "Boost a Listing",      href: "/sell/boost" },
+      { label: "Verified Owner Badge", href: "/auth/verify-docs" },
+      { label: "Seller Dashboard",     href: "/sell" },
     ],
   },
   {
     title: "Company",
     links: [
-      { label: "About AapKaPlot", href: "#" },
-      { label: "AI & Technology", href: "#" },
-      { label: "Careers", href: "#" },
-      { label: "Press", href: "#" },
-      { label: "Contact", href: "#" },
+      { label: "About AapKaPlot",  href: "/about" },
+      { label: "AI & Technology",  href: "/ai-technology" },
+      { label: "Careers",          href: "/careers" },
+      { label: "Press",            href: "/press" },
+      { label: "Blog",             href: "/blog" },
+      { label: "Contact",          href: "/contact" },
     ],
   },
 ];
@@ -62,12 +65,16 @@ export function Footer() {
               <p className="inline-flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-brand-500" /> Kolkata, West Bengal, India
               </p>
-              <p className="inline-flex items-center gap-2">
-                <Mail className="h-4 w-4 text-brand-500" /> hello@aapkaplot.com
-              </p>
-              <p className="inline-flex items-center gap-2">
-                <Phone className="h-4 w-4 text-brand-500" /> +91 80000 00000
-              </p>
+              <a href="mailto:hello@aapkaplot.com" className="block hover:text-ink-900">
+                <span className="inline-flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-brand-500" /> hello@aapkaplot.com
+                </span>
+              </a>
+              <a href="tel:+918000000000" className="block hover:text-ink-900">
+                <span className="inline-flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-brand-500" /> +91 80000 00000
+                </span>
+              </a>
             </div>
           </div>
 
@@ -102,41 +109,20 @@ export function Footer() {
             <p className="mt-4 text-[13.5px] text-ink-600">
               New properties, price drops, and AI investment picks in your area.
             </p>
-            <form className="mt-4 flex w-full overflow-hidden rounded-xl border border-ink-200 bg-white shadow-soft">
-              <input
-                type="email"
-                placeholder="your@email.com"
-                className="flex-1 bg-transparent px-3.5 py-2.5 text-sm placeholder:text-ink-400 focus:outline-none"
-              />
-              <button
-                type="submit"
-                className="bg-brand-gradient px-4 text-sm font-semibold text-white transition hover:brightness-105"
-              >
-                Subscribe
-              </button>
-            </form>
-            <div className="mt-6 flex gap-2">
-              {[Facebook, Instagram, Twitter, Youtube].map((Icon, i) => (
-                <a
-                  key={i}
-                  href="#"
-                  aria-label="Social"
-                  className="grid h-9 w-9 place-items-center rounded-xl border border-ink-200 bg-white text-ink-700 transition hover:border-brand-500/40 hover:text-brand-600"
-                >
-                  <Icon className="h-4 w-4" />
-                </a>
-              ))}
+            <div className="mt-4">
+              <NewsletterForm />
             </div>
+            <FooterSocial className="mt-6" />
           </div>
         </div>
 
         <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-ink-200/70 pt-6 text-[12.5px] text-ink-500 md:flex-row md:items-center">
-          <p>© {new Date().getFullYear()} AapKaPlot. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} AapKaPlot Technologies Pvt. Ltd. All rights reserved.</p>
           <div className="flex flex-wrap gap-4">
-            <Link href="#" className="hover:text-ink-800">Privacy</Link>
-            <Link href="#" className="hover:text-ink-800">Terms</Link>
-            <Link href="#" className="hover:text-ink-800">Cookies</Link>
-            <Link href="#" className="hover:text-ink-800">Sitemap</Link>
+            <Link href="/privacy" className="hover:text-ink-800">Privacy</Link>
+            <Link href="/terms"   className="hover:text-ink-800">Terms</Link>
+            <Link href="/cookies" className="hover:text-ink-800">Cookies</Link>
+            <Link href="/sitemap" className="hover:text-ink-800">Sitemap</Link>
           </div>
         </div>
       </Container>
