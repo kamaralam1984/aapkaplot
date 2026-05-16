@@ -95,12 +95,23 @@ async function generateViaClaude(input: Input): Promise<string> {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   const prompt = buildPrompt(input);
+  // System prompt is identical across every call → mark cache_control so the
+  // SDK reuses it from Anthropic's prompt cache (90% cost saving on cache hit,
+  // 5-minute TTL). Massively cheaper for high-volume listing generation.
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: 380,
-    system:
-      "You are a luxury Indian real-estate copywriter. Write listing descriptions that " +
-      "are vivid, factual, ~80 words, no emojis, no marketing fluff, second-person voice.",
+    system: [
+      {
+        type: "text",
+        text:
+          "You are a luxury Indian real-estate copywriter. Write listing descriptions that " +
+          "are vivid, factual, ~80 words, no emojis, no marketing fluff, second-person voice. " +
+          "Mention 1-2 nearby conveniences (metro / school / market) when relevant. Avoid " +
+          "clichés like 'dream home' or 'paradise'.",
+        cache_control: { type: "ephemeral" },
+      },
+    ],
     messages: [{ role: "user", content: prompt }],
   });
 
