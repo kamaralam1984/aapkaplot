@@ -59,7 +59,7 @@ export default function CareersPage() {
       {/* Open roles */}
       <section className="mt-14">
         <h2 className="text-display-md font-display text-ink-900">Open roles · {ROLES.length}</h2>
-        <p className="mt-1 text-[14px] text-ink-600">Don't see your fit? Email <a href="mailto:careers@aapkaplot.com" className="font-semibold text-brand-600 hover:underline">careers@aapkaplot.com</a></p>
+        <p className="mt-1 text-[14px] text-ink-600">Don't see your fit? Email <a href="mailto:aapkaplots@gmail.com" className="font-semibold text-brand-600 hover:underline">aapkaplots@gmail.com</a></p>
 
         <ul className="mt-6 surface-card divide-y divide-ink-200/70 overflow-hidden">
           {ROLES.map((r) => (
@@ -87,7 +87,7 @@ export default function CareersPage() {
       <section className="mt-14 rounded-3xl bg-brand-gradient p-8 text-center text-white lg:p-12">
         <h3 className="text-display-md font-display">Refer a friend, get ₹25,000</h3>
         <p className="mx-auto mt-2 max-w-xl text-[14.5px] text-white/85">
-          Send us someone we hire, and we'll send you a referral bonus on their joining date. Email <span className="font-semibold">careers@aapkaplot.com</span>.
+          Send us someone we hire, and we'll send you a referral bonus on their joining date. Email <span className="font-semibold">aapkaplots@gmail.com</span>.
         </p>
       </section>
     </MarketingShell>

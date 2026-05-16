@@ -46,8 +46,8 @@ export default function TermsPage() {
             body: (
               <p>
                 You're responsible for keeping your phone, OTP, and devices secure. Notify us at{" "}
-                <a href="mailto:security@aapkaplot.com" className="text-brand-600 underline">
-                  security@aapkaplot.com
+                <a href="mailto:aapkaplots@gmail.com" className="text-brand-600 underline">
+                  aapkaplots@gmail.com
                 </a>{" "}
                 immediately if you suspect unauthorised access.
               </p>

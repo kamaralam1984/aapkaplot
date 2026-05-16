@@ -73,7 +73,7 @@ export default function PrivacyPage() {
               <ul className="list-disc pl-6">
                 <li><strong>Access</strong> — download all your data anytime from <code>/me/settings</code>.</li>
                 <li><strong>Correction</strong> — edit profile, listings or visit history yourself.</li>
-                <li><strong>Deletion</strong> — request full account deletion at <a href="mailto:privacy@aapkaplot.com" className="text-brand-600 underline">privacy@aapkaplot.com</a>. We delete within 30 days.</li>
+                <li><strong>Deletion</strong> — request full account deletion at <a href="mailto:aapkaplots@gmail.com" className="text-brand-600 underline">aapkaplots@gmail.com</a>. We delete within 30 days.</li>
                 <li><strong>Portability</strong> — exported as JSON, no lock-in.</li>
                 <li><strong>Withdraw consent</strong> — turn off WhatsApp / SMS notifications from settings.</li>
               </ul>
@@ -124,8 +124,8 @@ export default function PrivacyPage() {
             body: (
               <p>
                 Questions, complaints, or data requests:{" "}
-                <a href="mailto:privacy@aapkaplot.com" className="text-brand-600 underline">
-                  privacy@aapkaplot.com
+                <a href="mailto:aapkaplots@gmail.com" className="text-brand-600 underline">
+                  aapkaplots@gmail.com
                 </a>{" "}
                 — our Data Protection Officer replies within 5 business days.
               </p>

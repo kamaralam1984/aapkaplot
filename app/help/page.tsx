@@ -74,7 +74,7 @@ export default function HelpPage() {
     <MarketingShell
       eyebrow="Help Center"
       title="How can we help?"
-      subtitle="Quick answers to common questions. Still stuck? WhatsApp us at +91 80000 00000 — usually replied within 30 minutes."
+      subtitle="Quick answers to common questions. Still stuck? WhatsApp us at +91 7039125391 — usually replied within 30 minutes."
       breadcrumbs={[{ label: "Home", href: "/" }, { label: "Help" }]}
       jsonLd={jsonLd}
     >
@@ -130,10 +130,10 @@ export default function HelpPage() {
         </span>
         <h3 className="mt-4 text-display-md font-display">Still need help?</h3>
         <p className="mx-auto mt-2 max-w-md text-[14.5px] text-white/85">
-          WhatsApp us at +91 80000 00000 — replies in 30 min. Or email hello@aapkaplot.com.
+          WhatsApp us at +91 7039125391 — replies in 30 min. Or email aapkaplots@gmail.com.
         </p>
         <div className="mt-5 flex flex-wrap justify-center gap-2">
-          <a href="https://wa.me/918000000000" target="_blank" rel="noopener noreferrer"
+          <a href="https://wa.me/917039125391" target="_blank" rel="noopener noreferrer"
              className="inline-flex h-11 items-center gap-2 rounded-xl bg-white px-5 text-[14px] font-bold text-emerald-700">
             WhatsApp us
           </a>

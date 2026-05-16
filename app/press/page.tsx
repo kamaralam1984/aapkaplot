@@ -27,7 +27,7 @@ export default function PressPage() {
     <MarketingShell
       eyebrow="Press & Media"
       title="The story of AapKaPlot, in one place"
-      subtitle="Latest announcements, media coverage and brand assets. For interviews, demo videos or quotes — email press@aapkaplot.com."
+      subtitle="Latest announcements, media coverage and brand assets. For interviews, demo videos or quotes — email aapkaplots@gmail.com."
       breadcrumbs={[{ label: "Home", href: "/" }, { label: "Press" }]}
     >
       <div className="grid gap-10 lg:grid-cols-[1.4fr_1fr]">
@@ -74,8 +74,8 @@ export default function PressPage() {
               Press contact
             </h3>
             <p className="mt-2 text-[13.5px] text-ink-700">For interviews, expert quotes, demo videos or product walkthroughs.</p>
-            <a href="mailto:press@aapkaplot.com" className="mt-2 inline-block text-[13.5px] font-bold text-brand-600 hover:underline">
-              press@aapkaplot.com
+            <a href="mailto:aapkaplots@gmail.com" className="mt-2 inline-block text-[13.5px] font-bold text-brand-600 hover:underline">
+              aapkaplots@gmail.com
             </a>
           </section>
         </aside>

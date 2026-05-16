@@ -11,15 +11,15 @@ export const metadata: Metadata = {
 };
 
 const CHANNELS = [
-  { icon: <MessagesSquare className="h-5 w-5" />, title: "WhatsApp",   value: "+91 80000 00000", href: "https://wa.me/918000000000?text=Hi%20AapKaPlot%20team", tone: "bg-emerald-50 text-emerald-600", note: "Fastest reply — usually < 30 min" },
-  { icon: <Mail className="h-5 w-5" />,           title: "Email",      value: "hello@aapkaplot.com", href: "mailto:hello@aapkaplot.com",  tone: "bg-sky-50 text-sky-600",     note: "We reply within 4 business hours" },
-  { icon: <Phone className="h-5 w-5" />,          title: "Call us",    value: "+91 80000 00000", href: "tel:+918000000000",                tone: "bg-violet-50 text-violet-600", note: "Mon–Sat, 10 AM – 7 PM IST" },
+  { icon: <MessagesSquare className="h-5 w-5" />, title: "WhatsApp",   value: "+91 7039125391", href: "https://wa.me/917039125391?text=Hi%20AapKaPlot%20team", tone: "bg-emerald-50 text-emerald-600", note: "Fastest reply — usually < 30 min" },
+  { icon: <Mail className="h-5 w-5" />,           title: "Email",      value: "aapkaplots@gmail.com", href: "mailto:aapkaplots@gmail.com",  tone: "bg-sky-50 text-sky-600",     note: "We reply within 4 business hours" },
+  { icon: <Phone className="h-5 w-5" />,          title: "Call us",    value: "+91 7039125391", href: "tel:+917039125391",                tone: "bg-violet-50 text-violet-600", note: "Mon–Sat, 10 AM – 7 PM IST" },
 ];
 
 const TEAMS = [
-  { icon: <Briefcase className="h-5 w-5" />, title: "Sales & partnerships", email: "sales@aapkaplot.com" },
-  { icon: <Headphones className="h-5 w-5" />, title: "Buyer / Seller support", email: "support@aapkaplot.com" },
-  { icon: <Mail className="h-5 w-5" />,       title: "Press & media",        email: "press@aapkaplot.com" },
+  { icon: <Briefcase className="h-5 w-5" />, title: "Sales & partnerships", email: "aapkaplots@gmail.com" },
+  { icon: <Headphones className="h-5 w-5" />, title: "Buyer / Seller support", email: "aapkaplots@gmail.com" },
+  { icon: <Mail className="h-5 w-5" />,       title: "Press & media",        email: "aapkaplots@gmail.com" },
 ];
 
 export default function ContactPage() {

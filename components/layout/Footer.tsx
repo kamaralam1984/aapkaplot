@@ -65,14 +65,14 @@ export function Footer() {
               <p className="inline-flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-brand-500" /> Kolkata, West Bengal, India
               </p>
-              <a href="mailto:hello@aapkaplot.com" className="block hover:text-ink-900">
+              <a href="mailto:aapkaplots@gmail.com" className="block hover:text-ink-900">
                 <span className="inline-flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-brand-500" /> hello@aapkaplot.com
+                  <Mail className="h-4 w-4 text-brand-500" /> aapkaplots@gmail.com
                 </span>
               </a>
-              <a href="tel:+918000000000" className="block hover:text-ink-900">
+              <a href="tel:+917039125391" className="block hover:text-ink-900">
                 <span className="inline-flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-brand-500" /> +91 80000 00000
+                  <Phone className="h-4 w-4 text-brand-500" /> +91 7039125391
                 </span>
               </a>
             </div>
