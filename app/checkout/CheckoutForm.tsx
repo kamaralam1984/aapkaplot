@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, Loader2, Lock, Sparkles, ShieldCheck } from "lucide-react";
@@ -11,6 +11,29 @@ import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/Button";
 import { formatInr } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/Toast";
+import { track } from "@/lib/track";
+
+declare global {
+  interface Window {
+    Razorpay?: any;
+  }
+}
+
+const RZP_SCRIPT_SRC = "https://checkout.razorpay.com/v1/checkout.js";
+
+function loadRazorpayScript(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof window === "undefined") return resolve(false);
+    if (window.Razorpay) return resolve(true);
+    const s = document.createElement("script");
+    s.src = RZP_SCRIPT_SRC;
+    s.async = true;
+    s.onload = () => resolve(true);
+    s.onerror = () => resolve(false);
+    document.head.appendChild(s);
+  });
+}
 
 const PLAN_META: Record<string, { label: string; priceInr: number; perks: string[] }> = {
   spotlight: { label: "Spotlight · 7 days",  priceInr: 499,  perks: ["Top of search · 7 days", "Highlighted card", "Search analytics"] },
@@ -39,9 +62,17 @@ export default function CheckoutForm() {
   const gst = Math.round(plan.priceInr * 0.18);
   const total = plan.priceInr + gst;
 
+  const toast = useToast();
+
+  // Preload Razorpay checkout.js so the modal opens instantly on click.
+  useEffect(() => {
+    loadRazorpayScript();
+  }, []);
+
   const pay = async () => {
     setPending(true);
     try {
+      // 1. Ask the server to create a Razorpay order (or a simulated one).
       const res = await fetch("/api/payments/order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -55,13 +86,78 @@ export default function CheckoutForm() {
         }
         throw new Error(data.error ?? "payment_failed");
       }
-      // In a real Razorpay flow we'd open the checkout modal with `data.keyId`
-      // + `data.order.id` here. For the simulated path we confirm directly.
-      await new Promise((r) => setTimeout(r, 600));
+
+      track("checkout_started", { plan: planId, mode: data.mode });
+
+      // 2. Real Razorpay flow — open the hosted checkout modal.
+      if (data.mode === "razorpay" && data.keyId) {
+        const ready = await loadRazorpayScript();
+        if (!ready || !window.Razorpay) {
+          throw new Error("razorpay_script_failed");
+        }
+        await new Promise<void>((resolve, reject) => {
+          const rzp = new window.Razorpay({
+            key: data.keyId,
+            amount: data.order.amount,
+            currency: data.order.currency,
+            name: "AapKaPlot",
+            description: `${plan.label}`,
+            order_id: data.order.id,
+            theme: { color: "#10b981" },
+            handler: async (response: any) => {
+              try {
+                const v = await fetch("/api/payments/verify", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    razorpay_order_id:   response.razorpay_order_id,
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_signature:  response.razorpay_signature,
+                    plan: planId,
+                  }),
+                });
+                const vData = await v.json();
+                if (!v.ok || !vData.ok) throw new Error(vData.error ?? "verify_failed");
+                track("checkout_paid", { plan: planId, paymentId: response.razorpay_payment_id });
+                toast.show({ kind: "success", title: "Payment received", description: `Plan ${plan.label} active.` });
+                resolve();
+              } catch (err) {
+                reject(err);
+              }
+            },
+            modal: {
+              ondismiss: () => {
+                track("checkout_cancelled", { plan: planId });
+                toast.show({ kind: "info", title: "Payment cancelled" });
+                reject(new Error("cancelled"));
+              },
+            },
+            prefill: { name: "", email: "", contact: "" },
+            notes: { plan: planId, mode: "test" },
+          });
+          rzp.open();
+        });
+      } else {
+        // 3. Simulated path — no Razorpay keys configured. Quick demo confirm.
+        await new Promise((r) => setTimeout(r, 600));
+        toast.show({
+          kind: "success",
+          title: "Simulated payment",
+          description: "Set RAZORPAY_KEY_ID + SECRET to enable real charge.",
+        });
+      }
+
       setDone(true);
       setTimeout(() => router.push("/sell"), 1500);
-    } catch (err) {
-      console.error("[checkout]", err);
+    } catch (err: any) {
+      if (err?.message !== "cancelled") {
+        console.error("[checkout]", err);
+        toast.show({
+          kind: "error",
+          title: "Payment failed",
+          description: err?.message ?? "Please try again.",
+        });
+      }
     } finally {
       setPending(false);
     }
