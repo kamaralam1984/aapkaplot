@@ -23,10 +23,15 @@ export function isR2Configured(): boolean {
 }
 
 export function publicUrlFor(key: string): string {
+  // R2 buckets are private by default. To make uploaded media reachable:
+  //   1. Enable "R2.dev subdomain" on the bucket → `https://pub-<id>.r2.dev`
+  //   2. OR add a custom domain (e.g. media.8rupiya.in) and a CNAME to the
+  //      R2 bucket. Set R2_PUBLIC_BASE to that domain.
   const base = process.env.R2_PUBLIC_BASE?.replace(/\/$/, "");
   if (base) return `${base}/${key}`;
-  // Fallback to the account-scoped R2 public bucket URL if a custom domain
-  // isn't configured. Replace at deploy time once you've enabled R2.dev.
+  // No public base — return the S3 API URL (only works with signed requests).
+  // Useful for server-side fetches; uploads should set R2_PUBLIC_BASE for
+  // browser delivery to work.
   return `https://${process.env.R2_BUCKET}.${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${key}`;
 }
 
