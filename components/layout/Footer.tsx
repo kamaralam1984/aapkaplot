@@ -63,7 +63,7 @@ export function Footer() {
             </p>
             <div className="mt-6 space-y-2 text-[13.5px] text-ink-600">
               <p className="inline-flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-brand-500" /> Kolkata, West Bengal, India
+                <MapPin className="h-4 w-4 text-brand-500" /> Sultanganj, Patna, Bihar 800006
               </p>
               <a href="mailto:aapkaplots@gmail.com" className="block hover:text-ink-900">
                 <span className="inline-flex items-center gap-2">

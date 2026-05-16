@@ -86,8 +86,8 @@ export default function ContactPage() {
             </h3>
             <p className="mt-2 text-[13.5px] text-ink-700">
               AapKaPlot Technologies Pvt. Ltd.<br />
-              42 Park Street, 4th Floor<br />
-              Kolkata 700016, West Bengal
+              Sultanganj<br />
+              Patna 800006, Bihar
             </p>
             <p className="mt-2 text-[12px] text-ink-500">India — registered office</p>
           </section>

@@ -3,48 +3,63 @@ name: Deploy to VPS
 on:
   push:
     branches: [main]
-    # Skip deploys for changes that don't affect the runtime
     paths-ignore:
       - "**.md"
       - "PROJECT_AUDIT.md"
       - "DEPLOY.md"
       - ".gitignore"
-  workflow_dispatch:        # manual trigger from the Actions tab
+  workflow_dispatch:
 
 concurrency:
   group: deploy-vps
-  cancel-in-progress: false # let an in-flight deploy finish before the next
+  cancel-in-progress: false
 
 jobs:
   deploy:
-    name: SSH → /var/www/aapkaplot
+    name: Webhook → 8rupiya.in
     runs-on: ubuntu-latest
     timeout-minutes: 12
 
     steps:
-      - name: Run setup script on the VPS
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host:     ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key:      ${{ secrets.DEPLOY_SSH_KEY }}
-          port:     22
-          command_timeout: 10m
-          script_stop: true
-          script: |
-            set -euo pipefail
-            cd /var/www/aapkaplot
-            echo "── Triggered by: ${{ github.actor }} on commit ${{ github.sha }}"
-            git fetch --depth=20 origin main
-            git reset --hard origin/main
-            bash deploy/vps-setup.sh
-
-      - name: Smoke test
+      - name: Trigger deploy webhook on VPS
+        env:
+          DEPLOY_WEBHOOK_TOKEN: ${{ secrets.DEPLOY_WEBHOOK_TOKEN }}
         run: |
           set -e
-          for url in https://8rupiya.in/ https://www.8rupiya.in/; do
-            code=$(curl -sIo /dev/null -w "%{http_code}" --max-time 15 "$url" || echo 000)
-            echo "  $url → HTTP $code"
-            [ "$code" = "200" ] || [ "$code" = "307" ] || exit 1
+          echo "── Triggered by: ${{ github.actor }} on commit ${{ github.sha }}"
+          STATUS=$(curl -sS -o /tmp/resp.json -w "%{http_code}" \
+            -X POST https://8rupiya.in/api/deploy/pull \
+            -H "Authorization: Bearer ${DEPLOY_WEBHOOK_TOKEN}" \
+            --max-time 30)
+          echo "Webhook status: $STATUS"
+          cat /tmp/resp.json
+          echo
+          [ "$STATUS" = "202" ] || (echo "❌ Webhook rejected"; exit 1)
+
+      - name: Wait for deploy to finish
+        run: |
+          set -e
+          echo "── Polling /about to return 200 (max 4 min)…"
+          deadline=$(( $(date +%s) + 240 ))
+          while [ $(date +%s) -lt $deadline ]; do
+            sleep 10
+            code=$(curl -sIo /dev/null -w "%{http_code}" --max-time 10 "https://8rupiya.in/about?v=${{ github.sha }}")
+            echo "  /about → HTTP $code"
+            if [ "$code" = "200" ]; then
+              echo "✓ Deploy live"
+              exit 0
+            fi
           done
-          echo "✓ Both domains healthy"
+          echo "❌ Timed out waiting for /about to return 200"
+          exit 1
+
+      - name: Smoke test new pages
+        run: |
+          set -e
+          fail=0
+          for url in / /about /contact /careers /press /ai-technology /help /blog /privacy /terms /cookies /sitemap; do
+            code=$(curl -sIo /dev/null -w "%{http_code}" --max-time 15 "https://8rupiya.in$url")
+            echo "  $url → HTTP $code"
+            [ "$code" = "200" ] || fail=1
+          done
+          [ "$fail" = "0" ] && echo "✓ All routes healthy" || (echo "❌ Some routes failed"; exit 1)

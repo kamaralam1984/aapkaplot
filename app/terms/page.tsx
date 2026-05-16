@@ -144,7 +144,7 @@ export default function TermsPage() {
             body: (
               <p>
                 These Terms are governed by the laws of India. Any disputes are subject to the
-                exclusive jurisdiction of the courts of Kolkata, West Bengal.
+                exclusive jurisdiction of the courts of Patna, Bihar.
               </p>
             ),
           },
