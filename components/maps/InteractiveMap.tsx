@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
+import maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { cn } from "@/lib/utils";
 
 export interface MapMarker {
@@ -32,13 +32,37 @@ export interface InteractiveMapProps {
   /** Disable interactivity (used when the map is a passive preview). */
   interactive?: boolean;
   className?: string;
-  /** Fallback when no token is configured. */
+  /** Fallback when the tile provider is unreachable. */
   fallback?: React.ReactNode;
 }
 
-const STYLE_URLS: Record<NonNullable<InteractiveMapProps["view"]>, string> = {
-  map: "mapbox://styles/mapbox/streets-v12",
-  satellite: "mapbox://styles/mapbox/satellite-streets-v12",
+// ── Style definitions ────────────────────────────────────────────────
+// OpenFreeMap (https://openfreemap.org) — free MapLibre vector tiles
+// hosted by Cloudflare. No API key, no rate limit, no signup.
+const STREET_STYLE = "https://tiles.openfreemap.org/styles/liberty";
+
+// Esri World Imagery — free raster satellite. Attribution required.
+const SATELLITE_STYLE: maplibregl.StyleSpecification = {
+  version: 8,
+  sources: {
+    satellite: {
+      type: "raster",
+      tiles: [
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      ],
+      tileSize: 256,
+      attribution:
+        '© <a href="https://www.esri.com">Esri</a> · World Imagery',
+      maxzoom: 19,
+    },
+  },
+  layers: [
+    {
+      id: "satellite",
+      type: "raster",
+      source: "satellite",
+    },
+  ],
 };
 
 export function InteractiveMap({
@@ -53,46 +77,56 @@ export function InteractiveMap({
   fallback,
 }: InteractiveMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
-  const markerRefs = useRef<Map<string, mapboxgl.Marker>>(new Map());
-  const originMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const markerRefs = useRef<Map<string, maplibregl.Marker>>(new Map());
+  const originMarkerRef = useRef<maplibregl.Marker | null>(null);
   const [ready, setReady] = useState(false);
-
-  const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+  const [errored, setErrored] = useState(false);
 
   // ── Initialise the map exactly once ──
   useEffect(() => {
-    if (!token || !containerRef.current || mapRef.current) return;
-    mapboxgl.accessToken = token;
+    if (!containerRef.current || mapRef.current) return;
 
-    const map = new mapboxgl.Map({
-      container: containerRef.current,
-      style: STYLE_URLS[view],
-      center: [center.lng, center.lat],
-      zoom,
-      interactive,
-      attributionControl: false,
-    });
+    try {
+      const map = new maplibregl.Map({
+        container: containerRef.current,
+        style: view === "satellite" ? SATELLITE_STYLE : STREET_STYLE,
+        center: [center.lng, center.lat],
+        zoom,
+        interactive,
+        attributionControl: { compact: true },
+      });
 
-    map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
-    if (interactive) map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+      if (interactive) {
+        map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+      }
+      map.on("load", () => setReady(true));
+      map.on("error", (e) => {
+        // Don't fail loudly on individual tile errors — only on style load failure.
+        if (e?.error?.message?.includes("Style")) {
+          console.warn("[map]", e.error.message);
+          setErrored(true);
+        }
+      });
 
-    map.on("load", () => setReady(true));
-
-    mapRef.current = map;
-    return () => {
-      map.remove();
-      mapRef.current = null;
-      markerRefs.current.clear();
-      originMarkerRef.current = null;
-    };
+      mapRef.current = map;
+      return () => {
+        map.remove();
+        mapRef.current = null;
+        markerRefs.current.clear();
+        originMarkerRef.current = null;
+      };
+    } catch (err) {
+      console.warn("[map] init failed:", err);
+      setErrored(true);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, []);
 
   // ── Style switch ──
   useEffect(() => {
     if (!mapRef.current) return;
-    mapRef.current.setStyle(STYLE_URLS[view]);
+    mapRef.current.setStyle(view === "satellite" ? SATELLITE_STYLE : STREET_STYLE);
   }, [view]);
 
   // ── Fit to bounds when supplied ──
@@ -121,7 +155,7 @@ export function InteractiveMap({
       <span class="akp-origin-pulse"></span>
       <span class="akp-origin-dot"></span>
     `;
-    originMarkerRef.current = new mapboxgl.Marker({ element: el })
+    originMarkerRef.current = new maplibregl.Marker({ element: el })
       .setLngLat([origin.lng, origin.lat])
       .addTo(mapRef.current);
   }, [ready, origin?.lat, origin?.lng]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -131,7 +165,6 @@ export function InteractiveMap({
     if (!ready || !mapRef.current) return;
     const next = new Set(markers.map((m) => m.id));
 
-    // Remove markers no longer present
     for (const [id, marker] of markerRefs.current) {
       if (!next.has(id)) {
         marker.remove();
@@ -139,7 +172,6 @@ export function InteractiveMap({
       }
     }
 
-    // Add / update remaining
     for (const m of markers) {
       const existing = markerRefs.current.get(m.id);
       const el =
@@ -155,7 +187,7 @@ export function InteractiveMap({
       if (existing) {
         existing.setLngLat([m.lng, m.lat]);
       } else {
-        const created = new mapboxgl.Marker({ element: el })
+        const created = new maplibregl.Marker({ element: el })
           .setLngLat([m.lng, m.lat])
           .addTo(mapRef.current!);
         markerRefs.current.set(m.id, created);
@@ -163,7 +195,7 @@ export function InteractiveMap({
     }
   }, [ready, markers]);
 
-  if (!token) {
+  if (errored) {
     return (
       <div className={cn("relative h-full w-full overflow-hidden rounded-2xl bg-emerald-50/40", className)}>
         {fallback ?? <FallbackArt />}
@@ -237,6 +269,12 @@ export function InteractiveMap({
           0%   { transform: scale(0.8); opacity: 0.7; }
           100% { transform: scale(2.4); opacity: 0; }
         }
+        /* Brand Maplibre attribution + controls. */
+        .maplibregl-ctrl-attrib {
+          background: rgba(255, 255, 255, 0.85);
+          backdrop-filter: blur(8px);
+          font-size: 10px !important;
+        }
       `}</style>
     </div>
   );
@@ -247,7 +285,7 @@ function FallbackArt() {
     <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,#eaf7f1,#d7eee2_38%,#f1f5f9_70%)]">
       <div className="dot-grid absolute inset-0 opacity-60" />
       <p className="absolute bottom-3 right-3 rounded-full bg-white/90 px-2 py-0.5 text-[10.5px] font-semibold text-ink-500 shadow-soft backdrop-blur-md">
-        Set NEXT_PUBLIC_MAPBOX_TOKEN to render the live map
+        Map provider unreachable
       </p>
     </div>
   );

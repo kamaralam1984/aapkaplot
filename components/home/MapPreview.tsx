@@ -37,7 +37,6 @@ export function MapPreview({
   const [view, setView] = useState<"map" | "satellite">("map");
   const [radius, setRadius] = useState(2); // 5 KM index
 
-  const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
   const liveMarkers = useMemo<MapMarker[]>(
     () =>
       properties.slice(0, 6).map((p) => ({
@@ -56,26 +55,16 @@ export function MapPreview({
       transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
       className="relative h-[460px] w-full overflow-hidden rounded-3xl border border-ink-200/70 bg-emerald-50/40 shadow-lift lg:h-[520px]"
     >
-      {/* Base map */}
-      {token ? (
-        <InteractiveMap
-          center={DEFAULT_ORIGIN}
-          zoom={11}
-          origin={DEFAULT_ORIGIN}
-          view={view}
-          interactive
-          markers={liveMarkers}
-          className="absolute inset-0"
-        />
-      ) : (
-        <>
-          <FallbackMapArt view={view} />
-          <RadiusRing />
-          {SAMPLE_MARKERS.map((m) => (
-            <PriceMarker key={m.id} {...m} />
-          ))}
-        </>
-      )}
+      {/* Base map — MapLibre + OpenFreeMap (free, no token) */}
+      <InteractiveMap
+        center={DEFAULT_ORIGIN}
+        zoom={11}
+        origin={DEFAULT_ORIGIN}
+        view={view}
+        interactive
+        markers={liveMarkers}
+        className="absolute inset-0"
+      />
 
       {/* Floating "Your Location" card */}
       <div className="absolute left-4 top-4 z-10 w-64 rounded-2xl border border-white/70 bg-white/90 p-3.5 shadow-lift backdrop-blur-xl">

@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { YouTubeEmbed } from "./YouTubeEmbed";
 import { Viewer360 } from "./Viewer360";
+import { InteractiveMap } from "@/components/maps/InteractiveMap";
 import { RotateCw } from "lucide-react";
 
 type Tab = "photos" | "video" | "satellite" | "map" | "tour" | "360";
@@ -184,31 +185,47 @@ export function PropertyGallery({
 }
 
 function SatelliteFrame({ lat, lng, fallback }: { lat: number; lng: number; fallback: string | null }) {
-  const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-  const url = token
-    ? `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/pin-l+10b981(${lng},${lat})/${lng},${lat},16,0/1200x600?access_token=${token}`
-    : fallback;
-  if (url) {
-    return <img src={url} alt="Satellite view" className="aspect-[2/1] w-full object-cover" />;
-  }
+  // Esri satellite raster via MapLibre — free, no token.
   return (
-    <div className="aspect-[2/1] w-full bg-gradient-to-br from-ink-900 via-ink-800 to-ink-700">
-      <div className="grid h-full place-items-center text-white/80">
-        <Satellite className="h-10 w-10 opacity-50" />
-      </div>
+    <div className="aspect-[2/1] w-full overflow-hidden bg-ink-900">
+      <InteractiveMap
+        center={{ lat, lng }}
+        zoom={16}
+        origin={{ lat, lng }}
+        view="satellite"
+        interactive
+        className="absolute inset-0"
+        fallback={
+          fallback ? (
+            <img src={fallback} alt="Satellite view" className="aspect-[2/1] w-full object-cover" />
+          ) : (
+            <div className="grid h-full place-items-center text-white/80">
+              <Satellite className="h-10 w-10 opacity-50" />
+            </div>
+          )
+        }
+      />
     </div>
   );
 }
 
 function MapFrame({ lat, lng }: { lat: number; lng: number }) {
-  const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-  const url = token
-    ? `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-l+10b981(${lng},${lat})/${lng},${lat},15,0/1200x600?access_token=${token}`
-    : null;
-  if (url) return <img src={url} alt="Map view" className="aspect-[2/1] w-full object-cover" />;
+  // MapLibre + OpenFreeMap — free, no token.
   return (
-    <div className="dot-grid aspect-[2/1] w-full bg-emerald-50/40 grid place-items-center text-ink-500">
-      <MapIcon className="h-10 w-10 opacity-40" />
+    <div className="aspect-[2/1] w-full overflow-hidden">
+      <InteractiveMap
+        center={{ lat, lng }}
+        zoom={15}
+        origin={{ lat, lng }}
+        view="map"
+        interactive
+        className="absolute inset-0"
+        fallback={
+          <div className="dot-grid grid h-full w-full place-items-center bg-emerald-50/40 text-ink-500">
+            <MapIcon className="h-10 w-10 opacity-40" />
+          </div>
+        }
+      />
     </div>
   );
 }
