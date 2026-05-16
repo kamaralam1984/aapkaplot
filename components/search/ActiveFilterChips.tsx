@@ -60,7 +60,7 @@ export function ActiveFilterChips({ filters }: ActiveFilterChipsProps) {
   if (filters.radiusKm != null) {
     chips.push({
       key: "radius",
-      label: `Within ${filters.radiusKm < 1 ? `${Math.round(filters.radiusKm * 1000)} m` : `${filters.radiusKm} km`}`,
+      label: `Within ${filters.radiusKm.toLocaleString("en-IN")} km`,
       clear: () => patch({ radiusKm: null }),
     });
   }

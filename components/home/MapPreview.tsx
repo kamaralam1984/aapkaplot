@@ -9,14 +9,15 @@ import type { Property } from "@/lib/types";
 import { InteractiveMap, type MapMarker } from "@/components/maps/InteractiveMap";
 import { DEFAULT_ORIGIN } from "@/lib/mock-data";
 
-const RADIUS_OPTIONS = [
-  { label: "500 m", value: 0.5 },
-  { label: "2 KM", value: 2 },
-  { label: "5 KM", value: 5 },
-  { label: "10 KM", value: 10 },
-  { label: "100 KM", value: 100 },
-  { label: "20,000 KM", value: 20000 },
-];
+// Search radius slider: 0 km → 20,000 km in 5 km steps.
+const RADIUS_MIN_KM = 0;
+const RADIUS_MAX_KM = 20000;
+const RADIUS_STEP_KM = 5;
+
+function formatRadius(km: number): string {
+  if (km === 0) return "0 km";
+  return `${km.toLocaleString("en-IN")} km`;
+}
 
 interface MapPreviewProps {
   properties: Property[];
@@ -35,7 +36,7 @@ export function MapPreview({
   state = "West Bengal",
 }: MapPreviewProps) {
   const [view, setView] = useState<"map" | "satellite">("map");
-  const [radius, setRadius] = useState(2); // 5 KM index
+  const [radius, setRadius] = useState(5); // km — default 5 km
 
   const liveMarkers = useMemo<MapMarker[]>(
     () =>
@@ -88,19 +89,20 @@ export function MapPreview({
               Search Radius
             </span>
             <span className="text-[12px] font-semibold text-brand-700">
-              {RADIUS_OPTIONS[radius].label}
+              {formatRadius(radius)}
             </span>
           </div>
           <input
             type="range"
-            min={0}
-            max={RADIUS_OPTIONS.length - 1}
+            min={RADIUS_MIN_KM}
+            max={RADIUS_MAX_KM}
+            step={RADIUS_STEP_KM}
             value={radius}
             onChange={(e) => setRadius(parseInt(e.target.value))}
             className="mt-2 w-full accent-emerald-500"
           />
           <div className="flex justify-between text-[10.5px] font-medium text-ink-400">
-            <span>500 m</span>
+            <span>0 km</span>
             <span>20,000 km</span>
           </div>
         </div>

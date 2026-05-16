@@ -27,7 +27,11 @@ const KINDS: { id: PropertyKind; label: string }[] = [
 ];
 
 const BHKS = [1, 2, 3, 4, 5];
-const RADIUS_OPTIONS = [0.5, 2, 5, 10, 25, 100];
+
+// Search radius slider: 0 km → 20,000 km in 5 km steps. 0 = no filter.
+const RADIUS_MIN_KM = 0;
+const RADIUS_MAX_KM = 20000;
+const RADIUS_STEP_KM = 5;
 
 interface FilterPanelProps {
   filters: ParsedSearchFilters;
@@ -223,25 +227,33 @@ export function FilterPanel({ filters }: FilterPanelProps) {
       </FilterSection>
 
       <FilterSection title="Distance" count={filters.radiusKm ? 1 : undefined}>
-        <div className="flex flex-wrap gap-2">
-          {RADIUS_OPTIONS.map((r) => {
-            const active = filters.radiusKm === r;
-            return (
-              <button
-                key={r}
-                type="button"
-                onClick={() => patch({ radiusKm: active ? null : r })}
-                className={cn(
-                  "h-9 rounded-lg border px-3 text-[12.5px] font-semibold transition",
-                  active
-                    ? "border-brand-500 bg-brand-50 text-brand-700"
-                    : "border-ink-200 bg-white text-ink-700 hover:border-brand-500/40"
-                )}
-              >
-                {r < 1 ? `${Math.round(r * 1000)} m` : `${r} km`}
-              </button>
-            );
-          })}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[11.5px] font-semibold uppercase tracking-wider text-ink-500">
+              Within
+            </span>
+            <span className="text-[13px] font-bold text-brand-700">
+              {filters.radiusKm
+                ? `${filters.radiusKm.toLocaleString("en-IN")} km`
+                : "Any distance"}
+            </span>
+          </div>
+          <input
+            type="range"
+            min={RADIUS_MIN_KM}
+            max={RADIUS_MAX_KM}
+            step={RADIUS_STEP_KM}
+            value={filters.radiusKm ?? 0}
+            onChange={(e) => {
+              const km = parseInt(e.target.value);
+              patch({ radiusKm: km === 0 ? null : km });
+            }}
+            className="w-full accent-brand-500"
+          />
+          <div className="flex justify-between text-[10.5px] font-medium text-ink-400">
+            <span>0 km</span>
+            <span>20,000 km</span>
+          </div>
         </div>
       </FilterSection>
 
