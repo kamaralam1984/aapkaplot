@@ -126,9 +126,8 @@ export default function LoginForm() {
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <OAuthBtn provider="google" label="Google" icon={<GoogleIcon className="h-4 w-4" />} />
-        <OAuthBtn provider="apple"  label="Apple"  icon={<AppleIcon  className="h-4 w-4" />} />
+      <div className="grid grid-cols-1 gap-2">
+        <OAuthBtn provider="google" label="Continue with Google" icon={<GoogleIcon className="h-4 w-4" />} />
       </div>
 
       <p className="mt-8 text-center text-[13px] text-ink-500">
@@ -143,7 +142,7 @@ export default function LoginForm() {
 
 function OAuthBtn({
   provider, label, icon,
-}: { provider: "google" | "apple"; label: string; icon: React.ReactNode }) {
+}: { provider: "google"; label: string; icon: React.ReactNode }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -190,13 +189,6 @@ function GoogleIcon({ className }: { className?: string }) {
       <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.66-2.26 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/>
       <path fill="#FBBC05" d="M5.84 14.1A6.6 6.6 0 0 1 5.5 12c0-.73.13-1.44.34-2.1V7.07H2.18A11 11 0 0 0 1 12c0 1.77.42 3.45 1.18 4.93z"/>
       <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.07l3.66 2.83C6.71 7.3 9.14 5.38 12 5.38z"/>
-    </svg>
-  );
-}
-function AppleIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden>
-      <path d="M16.37 12.7c-.03-2.74 2.24-4.06 2.34-4.13-1.27-1.86-3.26-2.12-3.97-2.15-1.69-.17-3.3.99-4.15.99-.87 0-2.18-.97-3.59-.94-1.85.03-3.55 1.07-4.5 2.72-1.92 3.33-.49 8.25 1.38 10.95.91 1.32 2 2.81 3.42 2.76 1.38-.06 1.9-.89 3.57-.89 1.66 0 2.13.89 3.59.86 1.49-.02 2.43-1.35 3.34-2.68 1.05-1.54 1.48-3.02 1.51-3.1-.04-.01-2.9-1.12-2.94-4.39zM13.7 4.39c.75-.91 1.26-2.18 1.12-3.44-1.08.04-2.4.72-3.18 1.63-.7.8-1.31 2.1-1.15 3.34 1.21.09 2.46-.62 3.21-1.53z"/>
     </svg>
   );
 }
