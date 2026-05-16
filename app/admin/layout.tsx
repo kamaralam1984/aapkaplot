@@ -17,7 +17,7 @@ export default async function AdminLayout({
   return (
     <DashboardShell
       brand={{ label: "Admin", tone: "violet" }}
-      user={{ name: session.name ?? "Admin", phone: session.phone, role: "admin" }}
+      user={{ name: session.name ?? "Admin", phone: session.phone, email: session.email, role: "admin" }}
       nav={[
         { href: "/admin",            label: "Overview",   icon: "dashboard" },
         { href: "/admin/moderation", label: "Moderation", icon: "shield", badge: openModeration || undefined },

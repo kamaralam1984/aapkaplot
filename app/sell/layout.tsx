@@ -16,7 +16,7 @@ export default async function SellerLayout({
   return (
     <DashboardShell
       brand={{ label: "Seller", tone: "sky" }}
-      user={{ name: session.name ?? "Seller", phone: session.phone, role: session.role }}
+      user={{ name: session.name ?? "Seller", phone: session.phone, email: session.email, role: session.role }}
       nav={[
         { href: "/sell",            label: "Overview",       icon: "dashboard" },
         { href: "/sell/listings",   label: "Listings",       icon: "listings" },

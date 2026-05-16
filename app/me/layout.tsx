@@ -17,7 +17,7 @@ export default async function BuyerDashboardLayout({
   return (
     <DashboardShell
       brand={{ label: "Buyer", tone: "emerald" }}
-      user={{ name: session.name ?? "Buyer", phone: session.phone, role: session.role }}
+      user={{ name: session.name ?? "Buyer", phone: session.phone, email: session.email, role: session.role }}
       nav={[
         { href: "/me",                 label: "Overview",   icon: "dashboard" },
         { href: "/me/saved",           label: "Saved",      icon: "heart" },

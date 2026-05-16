@@ -16,8 +16,8 @@ export default async function SettingsPage() {
 
       <Card title="Profile" icon={<User className="h-4 w-4" />}>
         <Row label="Full name"   value={s?.name ?? "Add your name"} action="Edit" />
-        <Row label="Phone"       value={s?.phone ?? "—"} action="Change" badge={<VerifiedBadge />} icon={<Phone className="h-3.5 w-3.5" />} />
-        <Row label="Email"       value="Add your email" action="Add" icon={<Mail className="h-3.5 w-3.5" />} />
+        <Row label="Email"       value={s?.email ?? "—"} action="Change" badge={<VerifiedBadge />} icon={<Mail className="h-3.5 w-3.5" />} />
+        <Row label="Phone"       value={s?.phone ?? "Add your phone"} action="Add" icon={<Phone className="h-3.5 w-3.5" />} />
       </Card>
 
       <Card title="Verification" icon={<ShieldCheck className="h-4 w-4" />}>

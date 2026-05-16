@@ -3,17 +3,19 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Phone, ArrowRight, Loader2, AlertCircle } from "lucide-react";
+import { Mail, ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
 import { Turnstile } from "@/components/auth/Turnstile";
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next") ?? "/me";
 
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
@@ -21,12 +23,13 @@ export default function LoginForm() {
   // Turnstile is only required when the site key env var is present;
   // when it's missing the server bypasses verification.
   const turnstileRequired = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
+  const emailValid = EMAIL_REGEX.test(email);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (phone.length < 10) {
-      setError("Please enter a valid 10-digit phone number");
+    if (!emailValid) {
+      setError("Please enter a valid email address");
       return;
     }
     if (turnstileRequired && !turnstileToken) {
@@ -39,7 +42,7 @@ export default function LoginForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          phone: `+91${phone}`,
+          email,
           turnstileToken: turnstileToken ?? undefined,
         }),
       });
@@ -50,7 +53,7 @@ export default function LoginForm() {
         }
         throw new Error(data.error ?? "send_failed");
       }
-      const q = new URLSearchParams({ phone: `+91${phone}`, next });
+      const q = new URLSearchParams({ email, next });
       if (data.devHint) q.set("hint", data.devHint);
       router.push(`/auth/verify?${q.toString()}`);
     } catch (err: any) {
@@ -69,26 +72,25 @@ export default function LoginForm() {
         Welcome back
       </h1>
       <p className="mt-2 text-[14.5px] text-ink-600">
-        Enter your phone — we'll text you a 6-digit code. No password.
+        Enter your email — we'll send you a 6-digit code. No password.
       </p>
 
       <form onSubmit={submit} className="mt-8 space-y-3">
         <label className="block">
           <span className="block text-[11.5px] font-semibold uppercase tracking-wider text-ink-500">
-            Mobile number
+            Email address
           </span>
           <div className="mt-1.5 flex h-12 rounded-xl border border-ink-200 bg-white shadow-soft transition focus-within:border-brand-500 focus-within:shadow-ring">
             <span className="inline-flex items-center gap-1.5 border-r border-ink-200 px-3 text-[14px] font-semibold text-ink-800">
-              <Phone className="h-4 w-4 text-brand-500" /> +91
+              <Mail className="h-4 w-4 text-brand-500" />
             </span>
             <input
-              type="tel"
+              type="email"
               autoFocus
-              autoComplete="tel-national"
-              inputMode="numeric"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-              placeholder="98765 43210"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value.trim().slice(0, 120))}
+              placeholder="you@example.com"
               className="flex-1 bg-transparent px-3 text-[15px] placeholder:text-ink-400 focus:outline-none"
             />
           </div>
@@ -107,13 +109,13 @@ export default function LoginForm() {
           type="submit"
           variant="primary"
           size="lg"
-          disabled={pending || phone.length < 10 || (turnstileRequired && !turnstileToken)}
+          disabled={pending || !emailValid || (turnstileRequired && !turnstileToken)}
           className="w-full"
           iconRight={
             pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />
           }
         >
-          {pending ? "Sending OTP..." : "Send OTP"}
+          {pending ? "Sending code..." : "Send code"}
         </Button>
       </form>
 

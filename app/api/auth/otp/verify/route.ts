@@ -5,7 +5,7 @@ import { verifyMockOtp } from "@/lib/mock-otp-store";
 import { encodeSession, newUserId, sessionCookie, type SessionRole } from "@/lib/session";
 
 const Body = z.object({
-  phone: z.string().regex(/^\+?[0-9]{10,15}$/),
+  email: z.string().email(),
   code: z.string().regex(/^[0-9]{6}$/),
   role: z.enum(["buyer", "seller", "agent"]).default("buyer"),
   name: z.string().min(1).max(60).optional(),
@@ -17,16 +17,17 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "invalid_payload" }, { status: 400 });
   }
-  const { phone, code, role, name } = parsed.data;
+  const { email, code, role, name } = parsed.data;
+  const lower = email.toLowerCase().trim();
 
-  const result = verifyMockOtp(phone, code);
+  const result = verifyMockOtp(lower, code);
   if (!result.ok) {
     return NextResponse.json({ error: result.reason }, { status: 401 });
   }
 
   const session = {
     uid: newUserId(),
-    phone,
+    email: lower,
     name,
     role: role as SessionRole,
     iat: Math.floor(Date.now() / 1000),

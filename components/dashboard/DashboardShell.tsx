@@ -48,7 +48,7 @@ export interface DashboardNavItem {
 interface DashboardShellProps {
   brand: { label: string; tone: "emerald" | "sky" | "violet" };
   nav: DashboardNavItem[];
-  user: { name: string; phone?: string; role?: string };
+  user: { name: string; phone?: string; email?: string; role?: string };
   children: React.ReactNode;
 }
 
@@ -236,7 +236,7 @@ function UserPanel({
   user,
   onLogout,
 }: {
-  user: { name: string; phone?: string; role?: string };
+  user: { name: string; phone?: string; email?: string; role?: string };
   onLogout: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -255,7 +255,7 @@ function UserPanel({
             {user.name}
           </span>
           <span className="block truncate text-[11.5px] text-ink-500">
-            {user.phone ?? user.role ?? "Account"}
+            {user.email ?? user.phone ?? user.role ?? "Account"}
           </span>
         </span>
         <ChevronDown className={cn("h-4 w-4 text-ink-400 transition", open && "rotate-180")} />

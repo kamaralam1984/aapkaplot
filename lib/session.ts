@@ -12,7 +12,10 @@ export type SessionRole = "buyer" | "seller" | "agent" | "admin";
 
 export interface Session {
   uid: string;
-  phone: string;
+  // One of phone | email is always set. Phone OTP is parked; email is the
+  // active identifier path until SMS provider is wired.
+  phone?: string;
+  email?: string;
   name?: string;
   role: SessionRole;
   iat: number;

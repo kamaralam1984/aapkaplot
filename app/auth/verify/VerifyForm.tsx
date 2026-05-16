@@ -13,7 +13,7 @@ const RESEND_SEC = 30;
 export default function VerifyForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const phone = params.get("phone") ?? "";
+  const email = params.get("email") ?? "";
   const next = params.get("next") ?? "/me";
   const devHint = params.get("hint") ?? "";
 
@@ -80,7 +80,7 @@ export default function VerifyForm() {
       const res = await fetch("/api/auth/otp/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, code }),
+        body: JSON.stringify({ email, code }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -108,7 +108,7 @@ export default function VerifyForm() {
     await fetch("/api/auth/otp/send", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone }),
+      body: JSON.stringify({ email }),
     });
     setResendIn(RESEND_SEC);
   };
@@ -135,7 +135,7 @@ export default function VerifyForm() {
       </Link>
       <h1 className="mt-3 text-display-md font-display text-ink-900">Enter the code</h1>
       <p className="mt-2 text-[14.5px] text-ink-600">
-        We sent a 6-digit code to <span className="font-semibold text-ink-900">{phone}</span>.
+        We sent a 6-digit code to <span className="font-semibold text-ink-900">{email}</span>.
       </p>
 
       <div className="mt-7 flex justify-between gap-2">

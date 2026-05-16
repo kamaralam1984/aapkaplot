@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { issueMockOtp } from "@/lib/mock-otp-store";
 import { verifyTurnstile } from "@/lib/turnstile";
+import { sendEmail, otpEmailContent } from "@/lib/email";
 
 const Body = z.object({
-  phone: z.string().regex(/^\+?[0-9]{10,15}$/, "Invalid phone"),
+  email: z.string().email("Invalid email"),
   turnstileToken: z.string().optional(),
 });
 
@@ -12,7 +13,7 @@ export async function POST(req: Request) {
   const json = await req.json().catch(() => ({}));
   const parsed = Body.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "invalid_phone" }, { status: 400 });
+    return NextResponse.json({ error: "invalid_email" }, { status: 400 });
   }
 
   // Cloudflare Turnstile gate (no-op if TURNSTILE_SECRET is unset).
@@ -25,11 +26,16 @@ export async function POST(req: Request) {
     );
   }
 
-  const { phone } = parsed.data;
-  const { expiresInSec, code } = issueMockOtp(phone);
+  const email = parsed.data.email.toLowerCase().trim();
+  const { expiresInSec, code } = issueMockOtp(email);
+
+  const { subject, html, text } = otpEmailContent(code);
+  const sent = await sendEmail({ to: email, subject, html, text });
+
   return NextResponse.json({
     ok: true,
     expiresInSec,
+    via: sent.via,
     // exposed only in dev to make manual testing easy
     devHint: process.env.NODE_ENV === "production" ? undefined : code,
   });
