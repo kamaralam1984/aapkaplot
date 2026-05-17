@@ -65,6 +65,13 @@ export function PropertyAdminActions({
       >
         View
       </Link>
+      <Link
+        href={`/admin/properties/edit/${id}`}
+        className="rounded-md border border-violet-300 bg-violet-50 px-2 py-1 text-[11px] font-semibold text-violet-700 hover:bg-violet-100"
+        title="Edit listing details"
+      >
+        Edit
+      </Link>
       {status === "PENDING_REVIEW" && (
         <button
           type="button"

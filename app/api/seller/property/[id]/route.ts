@@ -37,7 +37,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   });
   if (!p) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (p.ownerId !== session.uid) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    const me = await prisma.user.findUnique({ where: { id: session.uid }, select: { role: true } });
+    if (me?.role !== "ADMIN" && me?.role !== "SUPER_ADMIN") {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
   }
   return NextResponse.json({ property: p });
 }
@@ -95,8 +98,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params;
   const existing = await prisma.property.findUnique({ where: { id }, select: { ownerId: true, lat: true, lng: true } });
   if (!existing) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  // Owner OR admin can edit. Admins editing on behalf of a seller is the path
+  // used by /admin/properties/edit/[id].
   if (existing.ownerId !== session.uid) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    const me = await prisma.user.findUnique({ where: { id: session.uid }, select: { role: true } });
+    if (me?.role !== "ADMIN" && me?.role !== "SUPER_ADMIN") {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
   }
 
   const parsed = Body.safeParse(await req.json().catch(() => ({})));

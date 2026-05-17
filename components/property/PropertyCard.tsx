@@ -67,12 +67,16 @@ export function PropertyCard({
   const viral = topViralSignal(property);
   const toast = useToast();
 
-  // Gallery slideshow on hover (cycles through media.gallery if present)
+  // Gallery slideshow on hover (cycles through media.gallery if present).
+  // Skip empty / null URLs so a missing cover doesn't break the card.
   const gallery: string[] = [
     property.media.cover,
     ...(property.media.gallery ?? []),
-  ].slice(0, 5);
+  ]
+    .filter((u): u is string => typeof u === "string" && u.length > 0)
+    .slice(0, 5);
   const [imgIdx, setImgIdx] = useState(0);
+  const [imgError, setImgError] = useState<Record<number, boolean>>({});
   const [hovering, setHovering] = useState(false);
   const [preview, setPreview] = useState(false);
 
@@ -96,26 +100,36 @@ export function PropertyCard({
           className="absolute inset-0 z-[2]"
         />
 
-        {/* Image */}
-        <div className="relative aspect-[4/3] w-full overflow-hidden bg-ink-100">
-          <AnimatePresence initial={false} mode="popLayout">
-            <motion.div
-              key={imgIdx}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.35 }}
-              className="absolute inset-0"
-            >
-              <Image
-                src={gallery[imgIdx]}
-                alt={property.title}
-                fill
-                sizes="(max-width: 768px) 80vw, 280px"
-                className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
-              />
-            </motion.div>
-          </AnimatePresence>
+        {/* Image. Falls back to a typed placeholder when no cover URL is set
+            or when the URL fails to load (broken upload, deleted CDN file). */}
+        <div className="relative aspect-[4/3] w-full overflow-hidden bg-gradient-to-br from-ink-50 via-ink-100 to-ink-200">
+          {gallery.length === 0 || imgError[imgIdx] ? (
+            <div className="absolute inset-0 grid place-items-center text-ink-400">
+              <svg viewBox="0 0 24 24" className="h-12 w-12" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z" />
+              </svg>
+            </div>
+          ) : (
+            <AnimatePresence initial={false} mode="popLayout">
+              <motion.div
+                key={imgIdx}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.35 }}
+                className="absolute inset-0"
+              >
+                <Image
+                  src={gallery[imgIdx]}
+                  alt={property.title}
+                  fill
+                  sizes="(max-width: 640px) 92vw, (max-width: 1024px) 45vw, 320px"
+                  className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
+                  onError={() => setImgError((m) => ({ ...m, [imgIdx]: true }))}
+                />
+              </motion.div>
+            </AnimatePresence>
+          )}
 
           {/* Auto-cycle dots when hovering + multi-image */}
           {gallery.length > 1 && (

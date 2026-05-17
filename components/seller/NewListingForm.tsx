@@ -495,7 +495,11 @@ function PhotosStep({ draft, update }: { draft: ListingDraft; update: <K extends
     if (!files || files.length === 0) return;
     setUploading(true);
     try {
-      const slots = Math.max(0, 12 - draft.photos.length);
+      const slots = Math.max(0, 20 - draft.photos.length);
+      if (slots === 0) {
+        toast.show({ kind: "info", title: "Limit reached", description: "Up to 20 images per listing." });
+        return;
+      }
       const fd = new FormData();
       Array.from(files).slice(0, slots).forEach((f) => fd.append("file", f));
 
@@ -509,7 +513,10 @@ function PhotosStep({ draft, update }: { draft: ListingDraft; update: <K extends
         toast.show({
           kind: "error",
           title: "Upload failed",
-          description: data.error ?? "Try a smaller image (max 10 MB).",
+          description:
+            data.error === "file_too_large"
+              ? "One of the files exceeds 20 MB. Compress and try again."
+              : data.error ?? "Try a smaller image (max 20 MB).",
         });
         return;
       }

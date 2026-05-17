@@ -3,9 +3,18 @@ import { writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { getSession } from "@/lib/auth-server";
 
-const MAX_BYTES = 10 * 1024 * 1024;
-const IMGBB_MAX_BYTES = 32 * 1024 * 1024;
-const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif", "video/mp4"];
+const MAX_BYTES = 20 * 1024 * 1024;       // 20 MB local storage cap
+const IMGBB_MAX_BYTES = 32 * 1024 * 1024; // ImgBB hard ceiling
+const ALLOWED_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/avif",
+  "image/gif",
+  "image/heic",  // modern iPhone default
+  "image/heif",
+  "video/mp4",
+];
 const IMGBB_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 const UPLOAD_DIR = join(process.cwd(), "public", "uploads");
