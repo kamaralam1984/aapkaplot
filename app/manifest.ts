@@ -14,15 +14,26 @@ export default function manifest(): MetadataRoute.Manifest {
     categories: ["business", "lifestyle", "shopping"],
     lang: "en-IN",
     icons: [
+      // Scalable SVG — modern browsers (Chrome, Edge, Firefox, Safari 16+)
+      // pick this for every size so we don't ship PNG at every resolution.
       {
-        src: "/icon-192.png",
-        sizes: "192x192",
+        src: "/icon.svg",
+        sizes: "any",
+        type: "image/svg+xml",
+        purpose: "any",
+      },
+      // Auto-generated PNGs from app/icon.tsx + app/apple-icon.tsx are
+      // exposed at /icon and /apple-icon — list them so older Android
+      // launchers that ignore SVG manifests still find a raster.
+      {
+        src: "/icon",
+        sizes: "32x32",
         type: "image/png",
-        purpose: "maskable",
+        purpose: "any",
       },
       {
-        src: "/icon-512.png",
-        sizes: "512x512",
+        src: "/apple-icon",
+        sizes: "180x180",
         type: "image/png",
         purpose: "maskable",
       },
