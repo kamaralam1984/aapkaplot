@@ -10,7 +10,7 @@ export default async function AdminLayout({
 }) {
   const session = await getSession();
   if (!session) redirect("/auth/login?next=/admin");
-  // NOTE: in prod also gate on session.role === "admin"; mock allows all.
+  // Role gating now lives in /middleware.ts (edge) + per-API requireAdmin().
 
   const openModeration = MOCK_MODERATION.filter((m) => m.status === "open").length;
 
@@ -19,14 +19,16 @@ export default async function AdminLayout({
       brand={{ label: "Admin", tone: "violet" }}
       user={{ name: session.name ?? "Admin", phone: session.phone, email: session.email, role: "admin" }}
       nav={[
-        { href: "/admin",            label: "Overview",   icon: "dashboard" },
-        { href: "/admin/moderation", label: "Moderation", icon: "shield", badge: openModeration || undefined },
-        { href: "/admin/fraud",      label: "AI Fraud",   icon: "sparkles" },
-        { href: "/admin/users",      label: "Users",      icon: "users" },
-        { href: "/admin/analytics",  label: "Analytics",  icon: "analytics" },
-        { href: "/admin/events",     label: "Events",     icon: "activity" },
-        { href: "/admin/heatmap",    label: "Heatmap",    icon: "activity" },
-        { href: "/admin/ads",        label: "Ads",        icon: "ads" },
+        { href: "/admin",              label: "Overview",      icon: "dashboard" },
+        { href: "/admin/properties",   label: "Properties",    icon: "ads" },
+        { href: "/admin/moderation",   label: "Moderation",    icon: "shield", badge: openModeration || undefined },
+        { href: "/admin/fraud",        label: "AI Fraud",      icon: "sparkles" },
+        { href: "/admin/users",        label: "Users",         icon: "users" },
+        { href: "/admin/verifications", label: "Verifications", icon: "shield" },
+        { href: "/admin/analytics",    label: "Analytics",     icon: "analytics" },
+        { href: "/admin/events",       label: "Events",        icon: "activity" },
+        { href: "/admin/heatmap",      label: "Heatmap",       icon: "activity" },
+        { href: "/admin/ads",          label: "Ads",           icon: "ads" },
       ]}
     >
       {children}
