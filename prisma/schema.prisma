@@ -88,6 +88,7 @@ model User {
   phone        String    @unique
   email        String?   @unique
   name         String?
+  address      String?
   role         UserRole  @default(BUYER)
   suspended    Boolean   @default(false)
   passwordHash String?

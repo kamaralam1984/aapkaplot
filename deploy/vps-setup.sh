@@ -85,6 +85,14 @@ npm install --omit=optional --no-audit --no-fund --loglevel=error
 log "Regenerating Prisma client…"
 npx prisma generate >/dev/null
 
+# Sync any new columns / models from prisma/schema.prisma into the prod DB.
+# `db push` is idempotent and a no-op when the schema already matches, so it's
+# safe to run every deploy. Skips re-generating the client (we just did that).
+log "Syncing Prisma schema to DB (prisma db push)…"
+npx prisma db push --skip-generate --accept-data-loss=false >/dev/null || {
+  log "⚠ prisma db push failed — continuing build; investigate before next deploy"
+}
+
 log "Building Next.js (production)…"
 npm run build
 

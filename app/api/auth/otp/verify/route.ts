@@ -11,6 +11,8 @@ const Body = z.object({
   code: z.string().regex(/^[0-9]{6}$/),
   role: z.enum(["buyer", "seller", "agent"]).default("buyer"),
   name: z.string().min(1).max(60).optional(),
+  phone: z.string().regex(/^[6-9][0-9]{9}$/).optional(),
+  address: z.string().min(6).max(240).optional(),
 });
 
 function prismaRoleToSession(role: string): SessionRole {
@@ -39,7 +41,7 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "invalid_payload" }, { status: 400 });
   }
-  const { email, code, role, name } = parsed.data;
+  const { email, code, role, name, phone, address } = parsed.data;
   const lower = email.toLowerCase().trim();
 
   const result = verifyMockOtp(lower, code);
@@ -57,23 +59,59 @@ export async function POST(req: Request) {
     if (existing) {
       uid = existing.id;
       const targetPrisma = promote && existing.role !== "SUPER_ADMIN" ? "SUPER_ADMIN" : existing.role;
-      if (targetPrisma !== existing.role) {
-        await prisma.user.update({ where: { id: uid }, data: { role: targetPrisma } });
+      // Backfill any newly-collected profile fields without overwriting non-null
+      // values the user already has on file.
+      const updateData: Record<string, unknown> = {};
+      if (targetPrisma !== existing.role) updateData.role = targetPrisma;
+      if (!existing.name && name) updateData.name = name;
+      if (!existing.address && address) updateData.address = address;
+      // Replace the legacy "email:xxx" sentinel with a real phone when supplied.
+      if (phone && existing.phone.startsWith("email:")) {
+        const phoneInUse = await prisma.user.findUnique({ where: { phone } });
+        if (phoneInUse && phoneInUse.id !== existing.id) {
+          return NextResponse.json({ error: "phone_taken" }, { status: 409 });
+        }
+        updateData.phone = phone;
+        updateData.phoneVerified = new Date();
+      }
+      if (Object.keys(updateData).length) {
+        await prisma.user.update({ where: { id: uid }, data: updateData });
       }
       finalRole = prismaRoleToSession(targetPrisma);
       finalName = existing.name ?? name;
     } else {
-      const created = await prisma.user.create({
-        data: {
-          phone: `email:${lower}`,
-          email: lower,
-          name: name ?? null,
-          role: promote ? "SUPER_ADMIN" : sessionRoleToPrisma(role),
-          emailVerified: new Date(),
-        },
-      });
-      uid = created.id;
-      finalRole = prismaRoleToSession(created.role);
+      // New user. Use real phone if supplied; otherwise fall back to the
+      // legacy email-prefixed sentinel so the unique constraint still passes.
+      if (phone) {
+        const phoneInUse = await prisma.user.findUnique({ where: { phone } });
+        if (phoneInUse) {
+          return NextResponse.json({ error: "phone_taken" }, { status: 409 });
+        }
+      }
+      try {
+        const created = await prisma.user.create({
+          data: {
+            phone: phone ?? `email:${lower}`,
+            email: lower,
+            name: name ?? null,
+            address: address ?? null,
+            role: promote ? "SUPER_ADMIN" : sessionRoleToPrisma(role),
+            emailVerified: new Date(),
+            phoneVerified: phone ? new Date() : null,
+          },
+        });
+        uid = created.id;
+        finalRole = prismaRoleToSession(created.role);
+      } catch (err) {
+        const msg = (err as Error).message || "";
+        if (msg.includes("Unique") && msg.includes("phone")) {
+          return NextResponse.json({ error: "phone_taken" }, { status: 409 });
+        }
+        if (msg.includes("Unique") && msg.includes("email")) {
+          return NextResponse.json({ error: "email_taken" }, { status: 409 });
+        }
+        throw err;
+      }
     }
   } else {
     uid = newUserId();

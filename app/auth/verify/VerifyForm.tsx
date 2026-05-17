@@ -16,6 +16,10 @@ export default function VerifyForm() {
   const email = params.get("email") ?? "";
   const next = params.get("next") ?? "/me";
   const devHint = params.get("hint") ?? "";
+  const name = params.get("name") ?? "";
+  const phone = params.get("phone") ?? "";
+  const address = params.get("address") ?? "";
+  const role = (params.get("role") ?? "buyer") as "buyer" | "seller" | "agent";
 
   const [digits, setDigits] = useState<string[]>(() => Array(OTP_LENGTH).fill(""));
   const [error, setError] = useState<string | null>(null);
@@ -80,7 +84,14 @@ export default function VerifyForm() {
       const res = await fetch("/api/auth/otp/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, code }),
+        body: JSON.stringify({
+          email,
+          code,
+          name: name || undefined,
+          phone: phone || undefined,
+          address: address || undefined,
+          role,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -89,6 +100,9 @@ export default function VerifyForm() {
           expired: "Code expired — request a new one",
           "too-many-attempts": "Too many attempts — request a new code",
           "not-found": "No active code — request a new one",
+          phone_taken: "This phone number is already registered. Please sign in.",
+          email_taken: "This email is already registered. Please sign in.",
+          invalid_payload: "Some details look invalid — please go back and fix them.",
         };
         throw new Error(map[data.error] ?? "Verification failed");
       }
