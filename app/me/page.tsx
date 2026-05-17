@@ -3,16 +3,12 @@ import { Heart, CalendarDays, BellRing, Sparkles, ArrowRight, Search } from "luc
 import { StatCard } from "@/components/dashboard/StatCard";
 import { SectionHeader } from "@/components/dashboard/SectionHeader";
 import { Button } from "@/components/ui/Button";
-import { PropertyCard } from "@/components/property/PropertyCard";
-import { MOCK_PROPERTIES, DEFAULT_ORIGIN } from "@/lib/mock-data";
-import { withinRadius } from "@/lib/haversine";
+import { RecommendedForYou } from "@/components/dashboard/RecommendedForYou";
 import { MOCK_VISITS, MOCK_SEARCH_ALERTS, getPropertyById } from "@/lib/mock-dashboard";
 import { getSession } from "@/lib/auth-server";
-import { formatInr } from "@/lib/format";
 
 export default async function BuyerOverviewPage() {
   const session = await getSession();
-  const nearby = withinRadius(DEFAULT_ORIGIN, MOCK_PROPERTIES, 200).slice(0, 4);
 
   return (
     <div className="space-y-8">
@@ -36,21 +32,8 @@ export default async function BuyerOverviewPage() {
         <StatCard label="AI picks" value="8" helper="Updated 5 min ago" icon={Sparkles} tone="emerald" />
       </div>
 
-      {/* Recommended */}
-      <section>
-        <div className="mb-3 flex items-end justify-between">
-          <div>
-            <h2 className="text-[16px] font-bold text-ink-900">Recommended for you</h2>
-            <p className="text-[13px] text-ink-500">Based on your saved listings and search history.</p>
-          </div>
-          <Link href="/me/recommendations" className="text-[13px] font-semibold text-brand-600 hover:underline">
-            See all →
-          </Link>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {nearby.map((p) => <PropertyCard key={p.id} property={p} />)}
-        </div>
-      </section>
+      {/* Recommended — client component, recomputes distance from real device coords */}
+      <RecommendedForYou />
 
       {/* Two-col: visits + alerts */}
       <section className="grid gap-6 lg:grid-cols-2">

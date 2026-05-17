@@ -2,15 +2,13 @@ import { prisma } from "@/server/db";
 import type { Property } from "@/lib/types";
 
 /**
- * Nearby property search using PostGIS ST_DistanceSphere.
+ * Nearby property search using PostGIS.
  *
- * SQL:
- *   SELECT *, ST_DistanceSphere(geom, ST_MakePoint(:lng, :lat)) / 1000 AS distance_km
- *   FROM "Property"
- *   WHERE status = 'ACTIVE'
- *     AND ST_DistanceSphere(geom, ST_MakePoint(:lng, :lat)) <= :radius_m
- *   ORDER BY distance_km ASC
- *   LIMIT :limit;
+ * `Property.geom` is typed as `geography(Point,4326)` in the schema, so we
+ * use ST_Distance(geography, geography) which returns *meters on the
+ * spheroid* — equivalent to ST_DistanceSphere but with the right type
+ * signature. (ST_DistanceSphere requires geometry inputs and would error
+ * with "function st_distancesphere(geography, geometry) does not exist".)
  *
  * Requires the GIST index:
  *   CREATE INDEX property_geom_idx ON "Property" USING GIST (geom);
@@ -52,13 +50,27 @@ export async function findNearbyProperties(opts: NearbyOptions) {
     filters.push(`p."priceInr" <= ${next()}`);
   }
 
+  // Geography-typed distance — returns meters on the spheroid.
+  // Explicit column list (no `p.*`) so Prisma doesn't try to deserialize the
+  // Unsupported `geom` column.
   const sql = `
     SELECT
-      p.*,
-      ST_DistanceSphere(p.geom, ST_MakePoint($1, $2)) / 1000.0 AS distance_km
+      p.id, p.title, p.description, p.kind, p.intent, p.status,
+      p."priceInr", p."previousPriceInr", p."areaSqft", p.bhk,
+      p.locality, p.city, p.state, p.pincode,
+      p.lat, p.lng,
+      p."coverUrl", p.gallery, p."videoUrl", p."youtubeUrl", p."tourUrl",
+      p."panoFrames", p."satelliteUrl",
+      p.verified, p."trustScore", p.amenities, p."aiBadges",
+      p."featuredUntil", p."boostedUntil",
+      p."allowsBrokers", p."brokerCommissionPct",
+      p."projectId", p."ownerId",
+      p."createdAt", p."updatedAt",
+      ST_Distance(p.geom, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography) / 1000.0 AS distance_km
     FROM "Property" p
     WHERE ${filters.join(" AND ")}
-      AND ST_DistanceSphere(p.geom, ST_MakePoint($1, $2)) <= $3
+      AND p.geom IS NOT NULL
+      AND ST_DWithin(p.geom, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography, $3)
     ORDER BY distance_km ASC
     LIMIT $4;
   `;

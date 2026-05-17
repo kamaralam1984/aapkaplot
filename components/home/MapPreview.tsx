@@ -8,8 +8,9 @@ import { formatInr } from "@/lib/format";
 import type { Property } from "@/lib/types";
 import { InteractiveMap, type MapMarker } from "@/components/maps/InteractiveMap";
 import { DEFAULT_ORIGIN } from "@/lib/mock-data";
+import { haversineKm } from "@/lib/haversine";
 
-// Search radius slider: 0 km → 20,000 km in 5 km steps.
+// Search radius slider: 0 km → 20,000 km in 5 km steps (original wide range).
 const RADIUS_MIN_KM = 0;
 const RADIUS_MAX_KM = 20000;
 const RADIUS_STEP_KM = 5;
@@ -21,6 +22,8 @@ function formatRadius(km: number): string {
 
 interface MapPreviewProps {
   properties: Property[];
+  /** Where to centre the map + label as "Your Location". Falls back to Kolkata. */
+  center?: { lat: number; lng: number };
   city?: string;
   state?: string;
 }
@@ -32,21 +35,29 @@ interface MapPreviewProps {
  */
 export function MapPreview({
   properties,
+  center,
   city = "Kolkata",
   state = "West Bengal",
 }: MapPreviewProps) {
   const [view, setView] = useState<"map" | "satellite">("map");
-  const [radius, setRadius] = useState(5); // km — default 5 km
+  const [radius, setRadius] = useState(20); // km — default 20 km (slider goes 0–20,000)
+  const origin = center ?? DEFAULT_ORIGIN;
 
+  // Only show properties within the chosen radius of the user's origin —
+  // this is what the slider is supposed to do but never wired before.
   const liveMarkers = useMemo<MapMarker[]>(
     () =>
-      properties.slice(0, 6).map((p) => ({
-        id: p.id,
-        lat: p.location.coords.lat,
-        lng: p.location.coords.lng,
-        label: formatInr(p.priceInr),
-      })),
-    [properties]
+      properties
+        .map((p) => ({ p, dKm: haversineKm(origin, p.location.coords) }))
+        .filter(({ dKm }) => dKm <= radius)
+        .slice(0, 8)
+        .map(({ p }) => ({
+          id: p.id,
+          lat: p.location.coords.lat,
+          lng: p.location.coords.lng,
+          label: formatInr(p.priceInr),
+        })),
+    [properties, origin.lat, origin.lng, radius]
   );
 
   return (
@@ -58,9 +69,9 @@ export function MapPreview({
     >
       {/* Base map — MapLibre + OpenFreeMap (free, no token) */}
       <InteractiveMap
-        center={DEFAULT_ORIGIN}
+        center={origin}
         zoom={11}
-        origin={DEFAULT_ORIGIN}
+        origin={origin}
         view={view}
         interactive
         markers={liveMarkers}
@@ -102,9 +113,12 @@ export function MapPreview({
             className="mt-2 w-full accent-emerald-500"
           />
           <div className="flex justify-between text-[10.5px] font-medium text-ink-400">
-            <span>0 km</span>
-            <span>20,000 km</span>
+            <span>{RADIUS_MIN_KM} km</span>
+            <span>{RADIUS_MAX_KM} km</span>
           </div>
+          <p className="mt-1 text-[10.5px] text-ink-500">
+            Showing {liveMarkers.length} {liveMarkers.length === 1 ? "listing" : "listings"} within {radius} km
+          </p>
         </div>
       </div>
 

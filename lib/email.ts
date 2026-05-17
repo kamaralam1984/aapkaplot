@@ -1,12 +1,16 @@
 /**
  * Tiny transactional email helper.
  *
- * Sends via Resend's REST API (free tier: 3,000/month, 100/day) when
- * RESEND_API_KEY is set. Falls back to console logging in dev so the OTP
- * flow keeps working without a configured provider.
+ * Delivery order:
+ *   1. Resend REST API   (free 3,000/mo, 100/day; needs verified domain
+ *      to send to arbitrary recipients).
+ *   2. SMTP via nodemailer  (Gmail App Password works; unlimited recipients
+ *      but rate-limited by Gmail).
+ *   3. Console log         (dev fallback so OTPs keep flowing).
  *
- * No SDK dependency — uses plain fetch().
+ * Each step is tried only when the previous one isn't configured OR fails.
  */
+import nodemailer from "nodemailer";
 
 interface SendArgs {
   to: string;
@@ -17,36 +21,101 @@ interface SendArgs {
 
 const FROM_DEFAULT = "AapKaPlot <onboarding@resend.dev>";
 
-export async function sendEmail({ to, subject, html, text }: SendArgs): Promise<{ ok: boolean; via: "resend" | "console"; id?: string }> {
+type Via = "resend" | "smtp" | "console";
+
+let smtpTransport: nodemailer.Transporter | null = null;
+function getSmtp(): nodemailer.Transporter | null {
+  if (smtpTransport) return smtpTransport;
+  const host = process.env.SMTP_HOST;
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  if (!host || !user || !pass) return null;
+  smtpTransport = nodemailer.createTransport({
+    host,
+    port: Number(process.env.SMTP_PORT ?? 587),
+    secure: Number(process.env.SMTP_PORT ?? 587) === 465,
+    auth: { user, pass },
+  });
+  return smtpTransport;
+}
+
+async function sendViaResend(args: SendArgs, from: string): Promise<{ ok: boolean; id?: string; error?: string }> {
   const key = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM ?? FROM_DEFAULT;
-
-  if (!key) {
-    console.log(`[email:console] to=${to} subject="${subject}"`);
-    if (text) console.log(`[email:console] ${text}`);
-    return { ok: true, via: "console" };
-  }
-
+  if (!key) return { ok: false, error: "no_key" };
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`,
-      },
-      body: JSON.stringify({ from, to, subject, html, text }),
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ from, to: args.to, subject: args.subject, html: args.html, text: args.text }),
     });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
-      console.warn(`[email:resend] HTTP ${res.status} ${body.slice(0, 200)}`);
-      return { ok: false, via: "resend" };
+      return { ok: false, error: `http_${res.status} ${body.slice(0, 200)}` };
     }
     const data = (await res.json()) as { id?: string };
-    return { ok: true, via: "resend", id: data.id };
+    return { ok: true, id: data.id };
   } catch (err) {
-    console.warn("[email:resend] threw:", (err as Error).message);
-    return { ok: false, via: "resend" };
+    return { ok: false, error: (err as Error).message };
   }
+}
+
+async function sendViaSmtp(args: SendArgs, from: string): Promise<{ ok: boolean; id?: string; error?: string }> {
+  const tx = getSmtp();
+  if (!tx) return { ok: false, error: "no_smtp_config" };
+
+  // Gmail SMTP rewrites/rejects when the From address doesn't match the
+  // authenticated user. Force the From mailbox to SMTP_USER but keep the
+  // display name, so the inbox shows "AapKaPlot <8rupiya@gmail.com>".
+  const smtpUser = process.env.SMTP_USER;
+  let envelopeFrom = from;
+  if (smtpUser) {
+    const displayMatch = from.match(/^([^<]+?)\s*</);
+    const display = (displayMatch?.[1] ?? "AapKaPlot").trim();
+    envelopeFrom = `${display} <${smtpUser}>`;
+  }
+
+  try {
+    const info = await tx.sendMail({
+      from: envelopeFrom,
+      replyTo: from,
+      to: args.to,
+      subject: args.subject,
+      text: args.text,
+      html: args.html,
+    });
+    return { ok: true, id: info.messageId };
+  } catch (err) {
+    return { ok: false, error: (err as Error).message };
+  }
+}
+
+export async function sendEmail(args: SendArgs): Promise<{ ok: boolean; via: Via; id?: string }> {
+  const from = process.env.EMAIL_FROM ?? FROM_DEFAULT;
+
+  // 1. Try Resend.
+  if (process.env.RESEND_API_KEY) {
+    const r = await sendViaResend(args, from);
+    if (r.ok) {
+      console.log(`[email:resend] sent to=${args.to} id=${r.id}`);
+      return { ok: true, via: "resend", id: r.id };
+    }
+    console.warn(`[email:resend] failed (${r.error}) — falling back to SMTP`);
+  }
+
+  // 2. Try SMTP.
+  if (process.env.SMTP_HOST) {
+    const s = await sendViaSmtp(args, from);
+    if (s.ok) {
+      console.log(`[email:smtp] sent to=${args.to} id=${s.id}`);
+      return { ok: true, via: "smtp", id: s.id };
+    }
+    console.warn(`[email:smtp] failed (${s.error}) — falling back to console`);
+  }
+
+  // 3. Console fallback for dev.
+  console.log(`[email:console] to=${args.to} subject="${args.subject}"`);
+  if (args.text) console.log(`[email:console] ${args.text}`);
+  return { ok: true, via: "console" };
 }
 
 /** Pre-built template for the 6-digit login OTP. */

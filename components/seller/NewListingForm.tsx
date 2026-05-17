@@ -48,8 +48,12 @@ interface ListingDraft {
   pincode: string;
   amenities: AmenityId[];
   photos: { name: string; url: string }[];
+  youtubeUrl?: string;
+  tourUrl?: string;
   priceInr?: number;
   negotiable: boolean;
+  allowsBrokers: boolean;
+  brokerCommissionPct?: number;
 }
 
 const EMPTY: ListingDraft = {
@@ -64,10 +68,12 @@ const EMPTY: ListingDraft = {
   amenities: [],
   photos: [],
   negotiable: true,
+  allowsBrokers: false,
 };
 
 export function NewListingForm() {
   const router = useRouter();
+  const toast = useToast();
   const [step, setStep] = useState<Step>(0);
   const [draft, setDraft] = useState<ListingDraft>(EMPTY);
   const [submitting, setSubmitting] = useState(false);
@@ -88,12 +94,67 @@ export function NewListingForm() {
   const back = () => setStep((s) => Math.max(0, s - 1) as Step);
 
   const submit = async () => {
+    if (!draft.kind || !draft.priceInr) return;
     setSubmitting(true);
-    // TODO: POST /api/property/create
-    await new Promise((r) => setTimeout(r, 700));
-    setSubmitting(false);
-    setDone(true);
-    setTimeout(() => router.push("/sell/listings"), 1100);
+    try {
+      const res = await fetch("/api/property/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          intent: draft.intent,
+          kind: draft.kind,
+          title: draft.title.trim(),
+          description: draft.description,
+          bhk: draft.bhk,
+          areaSqft: draft.areaSqft,
+          furnishing: draft.furnishing,
+          locality: draft.locality.trim(),
+          city: draft.city.trim(),
+          state: draft.state.trim(),
+          pincode: draft.pincode || undefined,
+          amenities: draft.amenities,
+          photos: draft.photos.map((p) => ({ name: p.name, url: p.url })),
+          youtubeUrl: draft.youtubeUrl || undefined,
+          tourUrl: draft.tourUrl || undefined,
+          priceInr: draft.priceInr,
+          negotiable: draft.negotiable,
+          allowsBrokers: draft.allowsBrokers,
+          brokerCommissionPct: draft.brokerCommissionPct,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (res.status === 401) {
+        toast.show({ kind: "info", title: "Please sign in", description: "Login to publish your listing." });
+        return;
+      }
+      if (res.status === 503 && data.error === "db_disabled") {
+        toast.show({
+          kind: "info",
+          title: "Saved as preview",
+          description: "DB is off in this environment — your draft is ready, ask admin to enable USE_DB.",
+        });
+        setDone(true);
+        setTimeout(() => router.push("/sell/listings"), 1200);
+        return;
+      }
+      if (!res.ok) {
+        toast.show({
+          kind: "error",
+          title: "Couldn't publish",
+          description: data.message ?? data.error ?? "Please try again.",
+        });
+        return;
+      }
+
+      toast.show({ kind: "success", title: "Submitted for review", description: "We'll notify you within 24 hours." });
+      setDone(true);
+      setTimeout(() => router.push("/sell/listings"), 1200);
+    } catch {
+      toast.show({ kind: "error", title: "Network error", description: "Check your connection and retry." });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (done) {
@@ -449,6 +510,110 @@ function PhotosStep({ draft, update }: { draft: ListingDraft; update: <K extends
           ))}
         </div>
       )}
+
+      <VideoTourBlock draft={draft} update={update} />
+    </div>
+  );
+}
+
+function parseYouTubeIdInline(input: string): string | null {
+  if (!input) return null;
+  try {
+    const u = new URL(input.trim());
+    if (u.hostname.includes("youtu.be")) return u.pathname.slice(1) || null;
+    if (u.hostname.includes("youtube.com")) {
+      const v = u.searchParams.get("v");
+      if (v) return v;
+      const m = u.pathname.match(/\/embed\/([\w-]{6,})/);
+      if (m) return m[1];
+    }
+  } catch {
+    if (/^[\w-]{11}$/.test(input.trim())) return input.trim();
+  }
+  return null;
+}
+
+function VideoTourBlock({
+  draft, update,
+}: {
+  draft: ListingDraft;
+  update: <K extends keyof ListingDraft>(k: K, v: ListingDraft[K]) => void;
+}) {
+  const ytId = parseYouTubeIdInline(draft.youtubeUrl ?? "");
+  const ytThumb = ytId ? `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg` : null;
+  const hasTour = !!draft.tourUrl && draft.tourUrl.trim().length > 0;
+
+  return (
+    <div className="rounded-2xl border-2 border-dashed border-brand-300/60 bg-gradient-to-br from-brand-50/40 via-white to-white p-5">
+      <div className="flex items-start gap-3">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-600">
+          <Camera className="h-5 w-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-[15px] font-bold text-ink-900">
+            Add a video tour <span className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">+3× leads</span>
+          </h3>
+          <p className="text-[12.5px] text-ink-500">
+            Listings with a YouTube walkthrough get on average 3× more enquiries than photo-only ones.
+            Upload the video to YouTube (Unlisted is fine), then paste the link here.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_240px]">
+        <div className="space-y-3">
+          <Field label="YouTube video URL" helper="youtu.be/abc123 · youtube.com/watch?v=abc123 · or just the 11-char ID">
+            <input
+              type="url"
+              value={draft.youtubeUrl ?? ""}
+              onChange={(e) => update("youtubeUrl", e.target.value)}
+              placeholder="https://youtu.be/dQw4w9WgXcQ"
+              className="input"
+            />
+          </Field>
+          <Field label="360° / Matterport tour URL (optional)" helper="Paste a Matterport, Kuula, Roundme or similar embed link.">
+            <input
+              type="url"
+              value={draft.tourUrl ?? ""}
+              onChange={(e) => update("tourUrl", e.target.value)}
+              placeholder="https://my.matterport.com/show/?m=…"
+              className="input"
+            />
+          </Field>
+        </div>
+
+        {/* Live preview thumbnail — seller sees immediately whether their link works */}
+        <div className="space-y-2">
+          <p className="text-[11.5px] font-semibold uppercase tracking-wider text-ink-500">
+            Live preview
+          </p>
+          <div className="relative aspect-video overflow-hidden rounded-xl bg-ink-100">
+            {ytThumb ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={ytThumb} alt="Video preview" className="h-full w-full object-cover" />
+                <span className="absolute inset-0 grid place-items-center bg-black/30">
+                  <span className="grid h-12 w-12 place-items-center rounded-full bg-[#ff0000] text-white shadow-glow">
+                    ▶
+                  </span>
+                </span>
+                <span className="absolute left-2 top-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                  Linked ✓
+                </span>
+              </>
+            ) : (
+              <div className="grid h-full w-full place-items-center text-center text-[11.5px] text-ink-500">
+                Paste a YouTube link →<br />preview shows here
+              </div>
+            )}
+          </div>
+          {hasTour && (
+            <p className="rounded-lg bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+              360° tour link added ✓
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -482,6 +647,40 @@ function PriceStep({ draft, update }: { draft: ListingDraft; update: <K extends 
         />
         Price is negotiable
       </label>
+
+      <div className="rounded-2xl border border-ink-200/70 bg-ink-50/40 p-4">
+        <label className="inline-flex items-center gap-2 text-[13.5px] font-semibold text-ink-800">
+          <input
+            type="checkbox"
+            checked={draft.allowsBrokers}
+            onChange={(e) => update("allowsBrokers", e.target.checked)}
+            className="h-4 w-4 accent-emerald-500"
+          />
+          Open to broker referrals
+        </label>
+        <p className="mt-1 text-[12px] text-ink-500">
+          Verified brokers can bring buyers and earn a commission on accepted offers.
+          You pay nothing until a deal closes.
+        </p>
+        {draft.allowsBrokers && (
+          <div className="mt-3 flex items-center gap-2">
+            <span className="text-[12.5px] font-semibold text-ink-700">Commission</span>
+            <input
+              type="number"
+              step={0.1}
+              min={0.5}
+              max={5}
+              value={draft.brokerCommissionPct ?? ""}
+              onChange={(e) =>
+                update("brokerCommissionPct", e.target.value ? Number(e.target.value) : undefined)
+              }
+              placeholder="1.0"
+              className="h-9 w-20 rounded-lg border border-ink-200 bg-white px-2 text-[13px] focus:border-brand-500 focus:outline-none"
+            />
+            <span className="text-[12.5px] text-ink-500">% of deal value · leave blank for broker's default (1%)</span>
+          </div>
+        )}
+      </div>
 
       <div className="rounded-2xl border border-emerald-200/70 bg-emerald-50 p-4 text-[13px] text-emerald-800">
         <strong className="font-semibold">AI tip:</strong> Listings priced within ±5% of the area

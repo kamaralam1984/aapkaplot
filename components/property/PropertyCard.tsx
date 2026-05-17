@@ -4,13 +4,14 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, MapPin, BadgeCheck, Sparkles, ShieldCheck, Eye } from "lucide-react";
+import { Heart, MapPin, BadgeCheck, Sparkles, ShieldCheck, Eye, GitCompare } from "lucide-react";
 import type { Property, AIBadge } from "@/lib/types";
 import { formatInr, formatArea } from "@/lib/format";
 import { formatDistance } from "@/lib/haversine";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
 import { useFavorites } from "@/lib/use-favorites";
+import { useCompare } from "@/lib/use-compare";
 import { topViralSignal } from "@/lib/viral-signals";
 import { useToast } from "@/components/ui/Toast";
 import { track } from "@/lib/track";
@@ -61,6 +62,8 @@ export function PropertyCard({
   }`;
   const { has, toggle } = useFavorites();
   const saved = has(property.id);
+  const compare = useCompare();
+  const inCompare = compare.has(property.id);
   const viral = topViralSignal(property);
   const toast = useToast();
 
@@ -190,6 +193,38 @@ export function PropertyCard({
             )}
           >
             <Heart className={cn("h-4 w-4", saved && "fill-current")} />
+          </button>
+
+          {/* Compare */}
+          <button
+            type="button"
+            aria-pressed={inCompare}
+            aria-label={inCompare ? "Remove from compare" : "Add to compare"}
+            onClick={(e) => {
+              e.preventDefault();
+              const result = compare.toggle(property.id);
+              if (!result.ok && result.reason === "full") {
+                toast.show({
+                  kind: "info",
+                  title: "Compare list is full",
+                  description: `You can compare up to ${compare.max} properties at once.`,
+                });
+                return;
+              }
+              toast.show({
+                kind: result.action === "added" ? "success" : "info",
+                title: result.action === "added" ? "Added to compare" : "Removed from compare",
+                description: property.title,
+              });
+            }}
+            className={cn(
+              "absolute right-12 top-3 z-[3] grid h-8 w-8 place-items-center rounded-full backdrop-blur-sm transition",
+              inCompare
+                ? "bg-brand-gradient text-white shadow-glow"
+                : "bg-white/90 text-ink-700 shadow-soft hover:bg-white hover:text-brand-600"
+            )}
+          >
+            <GitCompare className="h-4 w-4" />
           </button>
 
           {/* Quick preview button on hover */}

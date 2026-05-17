@@ -150,18 +150,45 @@ function OAuthBtn({
     setBusy(true);
     setErr(null);
     try {
-      // Probe whether OAuth is configured server-side.
-      const r = await fetch(`/api/auth/oauth/signin/${provider}`);
-      if (r.status === 503) {
-        const data = await r.json();
+      // Probe configuration. /providers returns 200 with the provider map
+      // when ready, 503 with our hint when next-auth isn't wired up.
+      const probe = await fetch(`/api/auth/oauth/providers`, { cache: "no-store" });
+      if (probe.status === 503) {
+        const data = await probe.json().catch(() => ({}));
         setErr(data.hint ?? "OAuth is not configured yet — please use the OTP login above.");
         return;
       }
-      // If configured, NextAuth would redirect us; fall back to the redirect URL.
-      window.location.href = `/api/auth/oauth/signin/${provider}`;
+
+      // NextAuth signin requires a POST with CSRF. Submit a hidden form so
+      // the browser follows the 302 to Google natively (preserves cookies,
+      // avoids fetch redirect-mode quirks).
+      const csrfRes = await fetch(`/api/auth/oauth/csrf`, { cache: "no-store" });
+      const { csrfToken } = await csrfRes.json();
+      if (!csrfToken) {
+        setErr("Couldn't initiate OAuth (no CSRF token).");
+        return;
+      }
+
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = `/api/auth/oauth/signin/${provider}`;
+
+      const csrf = document.createElement("input");
+      csrf.type = "hidden";
+      csrf.name = "csrfToken";
+      csrf.value = csrfToken;
+      form.appendChild(csrf);
+
+      const cb = document.createElement("input");
+      cb.type = "hidden";
+      cb.name = "callbackUrl";
+      cb.value = window.location.origin + "/";
+      form.appendChild(cb);
+
+      document.body.appendChild(form);
+      form.submit();
     } catch {
       setErr("OAuth is unavailable right now — please use OTP.");
-    } finally {
       setBusy(false);
     }
   };

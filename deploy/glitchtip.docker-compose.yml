@@ -1,0 +1,64 @@
+# GlitchTip — Sentry-compatible error tracking, self-hosted on VPS.
+# Free, OSS, runs in ~512 MB RAM.
+#
+# Usage on VPS:
+#   cd /srv/aapkaplot/deploy
+#   cp glitchtip.docker-compose.yml docker-compose.yml
+#   docker compose up -d
+#
+# Then visit http://<vps-host>:8001, create an org + project, copy the DSN
+# into AapKaPlot's .env as SENTRY_DSN.
+#
+# Reference: https://glitchtip.com/documentation/install
+version: "3.7"
+
+x-environment: &default-environment
+  DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres
+  SECRET_KEY: "change-me-openssl-rand-hex-32"
+  PORT: 8000
+  EMAIL_URL: "consolemail://"        # swap with SMTP later
+  GLITCHTIP_DOMAIN: "http://localhost:8001"
+  DEFAULT_FROM_EMAIL: "noreply@aapkaplot.com"
+  CELERY_WORKER_CONCURRENCY: 1
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: "trust"
+    volumes:
+      - glitchtip-pg:/var/lib/postgresql/data
+
+  redis:
+    image: valkey/valkey:8-alpine
+    restart: unless-stopped
+
+  web:
+    image: glitchtip/glitchtip:latest
+    depends_on: [postgres, redis]
+    ports:
+      - "8001:8000"
+    environment: *default-environment
+    restart: unless-stopped
+    volumes:
+      - glitchtip-uploads:/code/uploads
+
+  worker:
+    image: glitchtip/glitchtip:latest
+    command: ./bin/run-celery-with-beat.sh
+    depends_on: [postgres, redis]
+    environment: *default-environment
+    restart: unless-stopped
+    volumes:
+      - glitchtip-uploads:/code/uploads
+
+  migrate:
+    image: glitchtip/glitchtip:latest
+    depends_on: [postgres]
+    command: "./bin/run-migrate.sh"
+    environment: *default-environment
+
+volumes:
+  glitchtip-pg:
+  glitchtip-uploads:

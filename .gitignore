@@ -16,3 +16,4 @@ coverage
 /public/uploads/*
 !/public/uploads/.gitkeep
 node-compile-cache
+tsx-*/

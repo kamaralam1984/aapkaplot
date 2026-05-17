@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { ServiceWorkerRegister } from "@/components/layout/ServiceWorkerRegister";
 import { ToastProvider } from "@/components/ui/Toast";
+import { CompareDock } from "@/components/property/CompareDock";
 import "./globals.css";
 
 const inter = Inter({
@@ -74,7 +75,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${jakarta.variable}`}>
       <body className="min-h-screen bg-surface text-ink-900">
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          {children}
+          <CompareDock />
+        </ToastProvider>
         <ServiceWorkerRegister />
       </body>
     </html>

@@ -31,6 +31,18 @@ const en: Dict = {
   "filters.bhk":     "BHK",
   "filters.more":    "More Filters",
   "footer.tagline":  "India's AI-powered real estate platform.",
+  "card.save":       "Save",
+  "card.compare":    "Compare",
+  "card.preview":    "Preview",
+  "card.verified":   "Verified",
+  "card.callOwner":  "Call owner",
+  "card.chatOwner":  "Chat owner",
+  "common.cancel":   "Cancel",
+  "common.continue": "Continue",
+  "common.submit":   "Submit",
+  "common.delete":   "Delete",
+  "common.edit":     "Edit",
+  "common.loading":  "Loading…",
 };
 
 const hi: Dict = {
@@ -58,6 +70,18 @@ const hi: Dict = {
   "filters.bhk":     "BHK",
   "filters.more":    "अधिक फ़िल्टर",
   "footer.tagline":  "भारत का AI-संचालित रियल एस्टेट प्लेटफ़ॉर्म।",
+  "card.save":       "सेव",
+  "card.compare":    "तुलना",
+  "card.preview":    "प्रीव्यू",
+  "card.verified":   "सत्यापित",
+  "card.callOwner":  "मालिक को कॉल करें",
+  "card.chatOwner":  "मालिक से चैट",
+  "common.cancel":   "रद्द करें",
+  "common.continue": "जारी रखें",
+  "common.submit":   "सबमिट",
+  "common.delete":   "हटाएँ",
+  "common.edit":     "संपादित करें",
+  "common.loading":  "लोड हो रहा है…",
 };
 
 const bn: Dict = {
@@ -85,6 +109,18 @@ const bn: Dict = {
   "filters.bhk":     "BHK",
   "filters.more":    "আরও ফিল্টার",
   "footer.tagline":  "ভারতের AI-চালিত রিয়েল এস্টেট প্ল্যাটফর্ম।",
+  "card.save":       "সেভ",
+  "card.compare":    "তুলনা",
+  "card.preview":    "প্রিভিউ",
+  "card.verified":   "যাচাই করা",
+  "card.callOwner":  "মালিকের সাথে কল",
+  "card.chatOwner":  "মালিকের সাথে চ্যাট",
+  "common.cancel":   "বাতিল",
+  "common.continue": "চালিয়ে যান",
+  "common.submit":   "জমা দিন",
+  "common.delete":   "মুছুন",
+  "common.edit":     "সম্পাদনা",
+  "common.loading":  "লোড হচ্ছে…",
 };
 
 const DICTS: Record<Locale, Dict> = {

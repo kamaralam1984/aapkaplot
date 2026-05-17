@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Sparkles, Home, BadgeCheck, Satellite, Crosshair, ArrowRight } from "lucide-react";
@@ -13,6 +13,7 @@ import { GpsConsentBanner } from "./GpsConsentBanner";
 import { HERO_STATS, MOCK_PROPERTIES, DEFAULT_ORIGIN } from "@/lib/mock-data";
 import { withinRadius } from "@/lib/haversine";
 import { useT } from "@/lib/i18n";
+import { useDeviceLocation } from "@/lib/use-device-location";
 
 const ICONS: Record<string, React.ReactNode> = {
   home: <Home className="h-[18px] w-[18px]" />,
@@ -22,24 +23,22 @@ const ICONS: Record<string, React.ReactNode> = {
 };
 
 export function Hero() {
-  const [isLocating, setIsLocating] = useState(false);
-  const [origin, setOrigin] = useState(DEFAULT_ORIGIN);
   const { t } = useT();
+  // Single source of truth for "where the user is" — same hook the Navbar uses.
+  const { location: device, requesting: isLocating, resolve } = useDeviceLocation();
+  const [origin, setOrigin] = useState(DEFAULT_ORIGIN);
+
+  // Sync origin → device location whenever it resolves (covers first paint,
+  // permission grant, and manual re-detect from the navbar chip).
+  useEffect(() => {
+    if (device?.lat && device?.lng) {
+      setOrigin({ lat: device.lat, lng: device.lng });
+    }
+  }, [device?.lat, device?.lng]);
 
   const nearby = withinRadius(origin, MOCK_PROPERTIES, 200).slice(0, 6);
 
-  const handleLocate = () => {
-    if (!("geolocation" in navigator)) return;
-    setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setOrigin({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setIsLocating(false);
-      },
-      () => setIsLocating(false),
-      { enableHighAccuracy: true, timeout: 8000 }
-    );
-  };
+  const handleLocate = () => resolve();
 
   return (
     <section className="relative overflow-hidden bg-hero-radial">
@@ -130,7 +129,12 @@ export function Hero() {
 
           {/* Right: map preview + floating cards */}
           <div className="relative">
-            <MapPreview properties={nearby} />
+            <MapPreview
+              properties={nearby}
+              center={origin}
+              city={device?.city || undefined}
+              state={device?.state || undefined}
+            />
             {/* Floating property cards — clamped inside the column so they
                 never cause horizontal overflow on any viewport. */}
             {nearby[0] && (

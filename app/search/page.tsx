@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { SearchPageClient } from "@/components/search/SearchPageClient";
+import { AutoOriginSync } from "@/components/search/AutoOriginSync";
 import { parseSearchParams } from "@/lib/search-params";
 import { runSearch } from "@/lib/search";
 
@@ -40,6 +41,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
     <>
       <Navbar />
       <main className="pb-20">
+        <AutoOriginSync currentOrigin={origin} />
         <SearchPageClient
           filters={filters}
           items={items}

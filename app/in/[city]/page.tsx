@@ -8,19 +8,60 @@ import { Container } from "@/components/layout/Container";
 import { PropertyCard } from "@/components/property/PropertyCard";
 import { Button } from "@/components/ui/Button";
 import { MOCK_PROPERTIES } from "@/lib/mock-data";
+import { CITY_CENTROIDS } from "@/lib/city-centroids";
 import { formatInr } from "@/lib/format";
 
-const CITY_HERO = {
-  kolkata: {
-    label: "Kolkata",
-    state: "West Bengal",
-    blurb: "From New Town's tech corridors to Sodepur's quiet streets — discover the best plots, flats and houses in Kolkata.",
-  },
-  bengaluru: { label: "Bengaluru", state: "Karnataka", blurb: "India's tech capital. Premium gated societies, gated plots and high-yield rentals across Bengaluru." },
+interface CityMeta {
+  label: string;
+  state: string;
+  blurb: string;
+}
+
+const CITY_HERO: Record<string, CityMeta> = {
+  kolkata:   { label: "Kolkata",   state: "West Bengal", blurb: "From New Town's tech corridors to Sodepur's quiet streets — discover the best plots, flats and houses in Kolkata." },
+  bengaluru: { label: "Bengaluru", state: "Karnataka",   blurb: "India's tech capital. Premium gated societies, gated plots and high-yield rentals across Bengaluru." },
   mumbai:    { label: "Mumbai",    state: "Maharashtra", blurb: "Sea-facing flats, suburban villas and investment plots across Mumbai's most active neighbourhoods." },
   pune:      { label: "Pune",      state: "Maharashtra", blurb: "Spacious 2 & 3 BHK options, plots and villas across Pune's fast-growing micro-markets." },
-  delhi:     { label: "Delhi NCR", state: "Delhi", blurb: "From Greater Noida to Gurugram and South Delhi — find verified residential and commercial property." },
-} as const;
+  delhi:     { label: "Delhi NCR", state: "Delhi",       blurb: "From Greater Noida to Gurugram and South Delhi — find verified residential and commercial property." },
+};
+
+// State map for cities we know coords for but didn't write a custom blurb.
+const CITY_STATE: Record<string, string> = {
+  patna: "Bihar", lucknow: "Uttar Pradesh", kanpur: "Uttar Pradesh",
+  agra: "Uttar Pradesh", varanasi: "Uttar Pradesh", noida: "Uttar Pradesh",
+  ghaziabad: "Uttar Pradesh", "new delhi": "Delhi", gurgaon: "Haryana",
+  gurugram: "Haryana", faridabad: "Haryana", chandigarh: "Chandigarh",
+  hyderabad: "Telangana", chennai: "Tamil Nadu", coimbatore: "Tamil Nadu",
+  ahmedabad: "Gujarat", surat: "Gujarat", vadodara: "Gujarat",
+  jaipur: "Rajasthan", nagpur: "Maharashtra", nashik: "Maharashtra",
+  indore: "Madhya Pradesh", bhopal: "Madhya Pradesh", raipur: "Chhattisgarh",
+  ranchi: "Jharkhand", bhubaneswar: "Odisha", guwahati: "Assam",
+  ludhiana: "Punjab", amritsar: "Punjab", kochi: "Kerala",
+  thiruvananthapuram: "Kerala", hooghly: "West Bengal", howrah: "West Bengal",
+};
+
+function prettify(slug: string): string {
+  return slug.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+}
+
+/**
+ * Resolve a city slug to display metadata. Curated entries win; anything
+ * with a known centroid gets an auto-generated blurb so /in/patna,
+ * /in/lucknow etc. render instead of 404-ing.
+ */
+function resolveCityMeta(slug: string): CityMeta | null {
+  const key = slug.toLowerCase();
+  if (CITY_HERO[key]) return CITY_HERO[key];
+  if (CITY_CENTROIDS[key]) {
+    const label = prettify(key);
+    return {
+      label,
+      state: CITY_STATE[key] ?? "India",
+      blurb: `Find verified plots, flats and houses across ${label}. New listings every day.`,
+    };
+  }
+  return null;
+}
 
 const KIND_LINKS = [
   { slug: "flats",       label: "Flats",            kind: "flat" },
@@ -36,12 +77,14 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
-  return Object.keys(CITY_HERO).map((city) => ({ city }));
+  // Curated + every city we have a centroid for — that's the long-tail.
+  const all = new Set<string>([...Object.keys(CITY_HERO), ...Object.keys(CITY_CENTROIDS)]);
+  return Array.from(all).map((city) => ({ city }));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { city } = await params;
-  const meta = CITY_HERO[city.toLowerCase() as keyof typeof CITY_HERO];
+  const meta = resolveCityMeta(city);
   if (!meta) return { title: "City not found" };
   const title = `Property in ${meta.label} — Flats, Plots, Houses & Commercial`;
   return {
@@ -54,7 +97,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function CityPage({ params }: PageProps) {
   const { city } = await params;
-  const meta = CITY_HERO[city.toLowerCase() as keyof typeof CITY_HERO];
+  const meta = resolveCityMeta(city);
   if (!meta) notFound();
 
   // Sample properties from MOCK that match this city, else fall back to top 8.

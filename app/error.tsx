@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AlertTriangle, RotateCcw, Home } from "lucide-react";
 import { Container } from "@/components/layout/Container";
 import { Button } from "@/components/ui/Button";
+import { captureException } from "@/lib/sentry";
 
 export default function GlobalError({
   error,
@@ -14,8 +15,12 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // TODO: report to Sentry / PostHog
     console.error("[GlobalError]", error);
+    captureException(error, {
+      level: "error",
+      tags: { runtime: "client", route: "global" },
+      extra: { digest: error.digest },
+    });
   }, [error]);
 
   return (

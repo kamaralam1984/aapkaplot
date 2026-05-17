@@ -92,7 +92,7 @@ export function LanguageToggle({ className }: { className?: string }) {
               );
             })}
             <p className="border-t border-ink-200/70 px-3 py-2 text-[10.5px] text-ink-500">
-              Full UI translation coming soon — your preference is saved.
+              Hindi & Bengali are fully translated. More languages coming soon.
             </p>
           </motion.ul>
         )}

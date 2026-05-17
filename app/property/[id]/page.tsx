@@ -12,10 +12,15 @@ import { PropertyFacts } from "@/components/property/PropertyFacts";
 import { PropertyAbout } from "@/components/property/PropertyAbout";
 import { PropertyAmenities } from "@/components/property/PropertyAmenities";
 import { PropertyLocation } from "@/components/property/PropertyLocation";
+import { PropertyAINearby } from "@/components/property/PropertyAINearby";
+import { PropertyNeighbourhoodNarrative } from "@/components/property/PropertyNeighbourhoodNarrative";
 import { PropertyAIInsights } from "@/components/property/PropertyAIInsights";
 import { PropertyOwnerCard } from "@/components/property/PropertyOwnerCard";
 import { ScheduleVisitForm } from "@/components/property/ScheduleVisitForm";
 import { MobileStickyCTA } from "@/components/property/MobileStickyCTA";
+import { EMICalculator } from "@/components/property/EMICalculator";
+import { PropertyReviews } from "@/components/property/PropertyReviews";
+import { MakeOfferModal } from "@/components/property/MakeOfferModal";
 import { NearbyRail } from "@/components/home/NearbyRail";
 
 import {
@@ -23,6 +28,18 @@ import {
   getPropertyDetail,
   getSimilarProperties,
 } from "@/lib/property-detail";
+import { loadPropertyDetailFromDb } from "@/lib/property-detail-db";
+import type { PropertyDetail } from "@/lib/types";
+
+/**
+ * Mock-first, DB-fallback resolver. Mock has the rich seed catalogue we
+ * use during development; DB hosts real seller-created listings.
+ */
+async function resolveProperty(id: string): Promise<PropertyDetail | null> {
+  const fromMock = getPropertyDetail(id);
+  if (fromMock) return fromMock;
+  return loadPropertyDetailFromDb(id);
+}
 import { withinRadius } from "@/lib/haversine";
 import { formatInr } from "@/lib/format";
 
@@ -36,7 +53,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
-  const property = getPropertyDetail(id);
+  const property = await resolveProperty(id);
   if (!property) {
     return { title: "Property not found" };
   }
@@ -63,7 +80,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function PropertyDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const property = getPropertyDetail(id);
+  const property = await resolveProperty(id);
   if (!property) notFound();
 
   const similar = getSimilarProperties(property.id, 8);
@@ -118,7 +135,11 @@ export default async function PropertyDetailPage({ params }: PageProps) {
 
           <div className="mt-4">
             <PropertyGallery
-              gallery={property.media.gallery ?? [property.media.cover]}
+              gallery={
+                property.media.gallery && property.media.gallery.length > 0
+                  ? property.media.gallery
+                  : [property.media.cover]
+              }
               videoUrl={property.videoUrl}
               youtubeUrl={property.youtubeUrl}
               panoFrames={property.panoFrames}
@@ -149,11 +170,48 @@ export default async function PropertyDetailPage({ params }: PageProps) {
                 nearby={property.nearby}
               />
               <PropertyAIInsights insights={property.insights} />
+
+              {/* AI-generated nearby landmarks (OSM Overpass, server-fetched + cached). */}
+              <div className="mt-6">
+                <PropertyAINearby
+                  lat={property.location.coords.lat}
+                  lng={property.location.coords.lng}
+                />
+              </div>
+
+              {/* Free LLM-powered neighbourhood narrative (rules + optional CF Workers AI). */}
+              <div className="mt-6">
+                <PropertyNeighbourhoodNarrative
+                  lat={property.location.coords.lat}
+                  lng={property.location.coords.lng}
+                  kind={property.kind}
+                  bhk={property.bhk}
+                  locality={property.location.locality}
+                  city={property.location.city}
+                  intent={property.intent}
+                />
+              </div>
+
+              {property.intent !== "rent" && (
+                <div className="mt-6">
+                  <EMICalculator defaultPriceInr={property.priceInr} />
+                </div>
+              )}
+              <div className="mt-6">
+                <PropertyReviews propertyId={property.id} />
+              </div>
             </div>
 
             {/* Sidebar */}
-            <aside className="space-y-0 lg:sticky lg:top-20 lg:self-start">
+            <aside className="space-y-3 lg:sticky lg:top-20 lg:self-start">
               <PropertyOwnerCard owner={property.owner} propertyTitle={property.title} propertyId={property.id} />
+              {property.intent !== "rent" && (
+                <MakeOfferModal
+                  propertyId={property.id}
+                  listingPriceInr={property.priceInr}
+                  propertyTitle={property.title}
+                />
+              )}
               <ScheduleVisitForm propertyId={property.id} ownerName={property.owner.name} />
             </aside>
           </div>

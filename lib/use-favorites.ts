@@ -23,7 +23,25 @@ function write(set: Set<string>) {
   }
 }
 
-/** Subscribe to favorites changes across components + tabs. */
+async function fetchServerIds(): Promise<string[] | null> {
+  try {
+    const res = await fetch("/api/favorites", { cache: "no-store" });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return Array.isArray(data.ids) ? data.ids : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Optimistic favorite toggle:
+ *  - localStorage is the source of truth for instant UI feedback.
+ *  - When a session exists, the server merges + persists in Postgres.
+ *    On first mount, server state is unioned in (so favorites follow the
+ *    user across devices the next session they sign in).
+ *  - If the API is offline / unauthenticated, we silently stay local-only.
+ */
 export function useFavorites() {
   const [ids, setIds] = useState<string[]>([]);
 
@@ -32,6 +50,20 @@ export function useFavorites() {
     const sync = () => setIds([...read()]);
     window.addEventListener("akp:favorites-change", sync);
     window.addEventListener("storage", sync);
+
+    fetchServerIds().then((serverIds) => {
+      if (!serverIds) return;
+      const cur = read();
+      let changed = false;
+      for (const id of serverIds) {
+        if (!cur.has(id)) {
+          cur.add(id);
+          changed = true;
+        }
+      }
+      if (changed) write(cur);
+    });
+
     return () => {
       window.removeEventListener("akp:favorites-change", sync);
       window.removeEventListener("storage", sync);
@@ -42,15 +74,28 @@ export function useFavorites() {
 
   const toggle = useCallback((id: string) => {
     const cur = read();
-    if (cur.has(id)) cur.delete(id);
-    else cur.add(id);
+    const willSave = !cur.has(id);
+    if (willSave) cur.add(id);
+    else cur.delete(id);
     write(cur);
+
+    if (willSave) {
+      fetch("/api/favorites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ propertyId: id }),
+      }).catch(() => {});
+    } else {
+      fetch(`/api/favorites?propertyId=${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => {});
+    }
   }, []);
 
   const remove = useCallback((id: string) => {
     const cur = read();
+    if (!cur.has(id)) return;
     cur.delete(id);
     write(cur);
+    fetch(`/api/favorites?propertyId=${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => {});
   }, []);
 
   return { ids, has, toggle, remove };

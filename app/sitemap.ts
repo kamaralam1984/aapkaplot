@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { MOCK_PROPERTIES } from "@/lib/mock-data";
+import { MOCK_PROJECTS } from "@/lib/mock-projects";
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://aapkaplot.com";
 
@@ -67,5 +68,48 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }))
   );
 
-  return [...staticPages, ...intentKindMatrix, ...cityPages, ...cityKindPages, ...propertyPages];
+  // Per-city project list pages
+  const cityProjectPages: MetadataRoute.Sitemap = cities.map((c) => ({
+    url: `${BASE}/in/${c}/projects`,
+    changeFrequency: "weekly",
+    priority: 0.7,
+    lastModified: now,
+  }));
+
+  // Individual project detail pages (seed + DB later).
+  const projectPages: MetadataRoute.Sitemap = MOCK_PROJECTS.map((p) => ({
+    url: `${BASE}/in/${p.city.toLowerCase()}/projects/${p.slug}`,
+    changeFrequency: "weekly",
+    priority: 0.72,
+    lastModified: now,
+  }));
+
+  // Locality long-tail pages — derived from the active catalogue.
+  const localityKeys = new Set<string>();
+  for (const p of MOCK_PROPERTIES) {
+    const city = p.location.city.toLowerCase();
+    const locality = p.location.locality.toLowerCase().replace(/\s+/g, "-");
+    if (city && locality) localityKeys.add(`${city}/${locality}`);
+  }
+  const localityPages: MetadataRoute.Sitemap = Array.from(localityKeys).map((path) => {
+    // path is "city/locality" — re-segment for the /area/ route.
+    const [city, locality] = path.split("/");
+    return {
+      url: `${BASE}/in/${city}/area/${locality}`,
+      changeFrequency: "weekly" as const,
+      priority: 0.68,
+      lastModified: now,
+    };
+  });
+
+  return [
+    ...staticPages,
+    ...intentKindMatrix,
+    ...cityPages,
+    ...cityKindPages,
+    ...cityProjectPages,
+    ...projectPages,
+    ...localityPages,
+    ...propertyPages,
+  ];
 }

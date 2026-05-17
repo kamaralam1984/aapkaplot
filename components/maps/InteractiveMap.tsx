@@ -129,6 +129,49 @@ export function InteractiveMap({
     mapRef.current.setStyle(view === "satellite" ? SATELLITE_STYLE : STREET_STYLE);
   }, [view]);
 
+  // ── Resize observer + delayed kicks ──
+  // MapLibre measures its container at `new Map()` time. If the parent
+  // column finishes its flex layout AFTER that point (Hero, sidebar,
+  // satellite style swap), the canvas stays stuck at the early-paint
+  // dimensions and only a slice of tiles shows. We brute-force multiple
+  // resize() calls + a ResizeObserver to cover every late-layout case.
+  useEffect(() => {
+    if (!containerRef.current || !mapRef.current) return;
+    const map = mapRef.current;
+    const kick = () => {
+      try { map.resize(); } catch { /* map may have been disposed */ }
+    };
+    const raf = requestAnimationFrame(kick);
+    const timers = [
+      setTimeout(kick, 100),
+      setTimeout(kick, 400),
+      setTimeout(kick, 1200),
+    ];
+    const ro = new ResizeObserver(kick);
+    ro.observe(containerRef.current);
+    // Also resize on window load (catches font/layout shifts).
+    window.addEventListener("load", kick, { once: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      timers.forEach(clearTimeout);
+      ro.disconnect();
+      window.removeEventListener("load", kick);
+    };
+  }, [ready]);
+
+  // ── Re-centre when the `center` prop changes (e.g. device GPS resolved
+  //    to Patna after mount). flyTo() respects the current zoom and animates
+  //    smoothly. Bounds-based effect below takes precedence when set.
+  useEffect(() => {
+    if (!ready || !mapRef.current || bounds) return;
+    mapRef.current.flyTo({
+      center: [center.lng, center.lat],
+      zoom,
+      duration: 800,
+      essential: true,
+    });
+  }, [ready, center.lat, center.lng, zoom, bounds]);
+
   // ── Fit to bounds when supplied ──
   useEffect(() => {
     if (!ready || !mapRef.current || !bounds) return;
@@ -205,9 +248,20 @@ export function InteractiveMap({
 
   return (
     <div className={cn("relative h-full w-full overflow-hidden rounded-2xl", className)}>
-      <div ref={containerRef} className="absolute inset-0" />
-      {/* Inline styles for markers + origin dot. */}
+      <div ref={containerRef} className="absolute inset-0 maplibregl-akp" />
+      {/* Inline styles for markers + origin dot + force-fill canvas. */}
       <style jsx global>{`
+        /* Force MapLibre's internal containers to fill 100% — fixes the
+         * "only top slice of map renders" bug when parent flex column
+         * finishes layout after the map's initial measure. */
+        .maplibregl-akp,
+        .maplibregl-akp .maplibregl-map,
+        .maplibregl-akp .maplibregl-canvas-container,
+        .maplibregl-akp .maplibregl-canvas {
+          width: 100% !important;
+          height: 100% !important;
+          display: block;
+        }
         .akp-price-marker {
           display: inline-flex;
           align-items: center;

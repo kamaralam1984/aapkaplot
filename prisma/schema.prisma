@@ -65,6 +65,17 @@ model User {
   leadsSent    Lead[]       @relation("LeadFromUser")
   leadsReceived Lead[]      @relation("LeadToUser")
   otpCodes     OtpCode[]
+  payments     Payment[]
+  visits       VisitRequest[]
+  savedSearches SavedSearch[]
+  verifications Verification[]
+  reviewsWritten Review[]   @relation("ReviewAuthor")
+  reviewsReceived Review[]  @relation("ReviewSubject")
+  pushSubscriptions PushSubscription[]
+  brokerProfile     BrokerProfile?
+  brokerReferrals   BrokerReferral[] @relation("BrokerOfReferral")
+  buyerReferrals    BrokerReferral[] @relation("BuyerOfReferral")
+  commissionsEarned Commission[]
 }
 
 model Property {
@@ -74,6 +85,9 @@ model Property {
   kind         PropertyKind
   intent       ListingIntent
   status       ListingStatus  @default(PENDING_REVIEW)
+
+  projectId    String?
+  project      Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
   priceInr     Int
   previousPriceInr Int?
@@ -93,6 +107,9 @@ model Property {
   coverUrl     String
   gallery      String[]
   videoUrl     String?
+  youtubeUrl   String?
+  tourUrl      String?      // Matterport / Kuula / Roundme embed URL
+  panoFrames   String[]     // optional 360° frame sequence
   satelliteUrl String?
 
   verified     Boolean  @default(false)
@@ -100,11 +117,20 @@ model Property {
   amenities    String[]
   aiBadges     String[]
 
+  featuredUntil DateTime?
+  boostedUntil  DateTime?
+  allowsBrokers Boolean  @default(false)
+  brokerCommissionPct Float?  // optional per-listing override; null → use broker's default
+
   ownerId      String
   owner        User     @relation("OwnerProperties", fields: [ownerId], references: [id], onDelete: Cascade)
 
   favorites    Favorite[]
   leads        Lead[]
+  payments     Payment[]
+  visits       VisitRequest[]
+  reviews      Review[]
+  referrals    BrokerReferral[]
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -112,8 +138,29 @@ model Property {
   @@index([city, state])
   @@index([kind, intent])
   @@index([priceInr])
+  @@index([featuredUntil])
   /// Spatial index added in a migration:
   /// CREATE INDEX property_geom_idx ON "Property" USING GIST (geom);
+}
+
+model Payment {
+  id          String   @id @default(cuid())
+  userId      String
+  propertyId  String?
+  plan        String   // e.g. "boost-7d", "feature-30d"
+  amountInr   Int
+  provider    String   @default("razorpay")
+  orderId     String   @unique
+  paymentId   String   @unique
+  signature   String
+  status      String   @default("paid") // "paid" | "failed" | "refunded"
+  createdAt   DateTime @default(now())
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property    Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([propertyId])
 }
 
 model Favorite {
@@ -129,19 +176,238 @@ model Favorite {
 }
 
 model Lead {
-  id          String   @id @default(cuid())
-  fromUserId  String
-  toUserId    String
-  propertyId  String
-  message     String?
-  via         String?
-  createdAt   DateTime @default(now())
+  id              String   @id @default(cuid())
+  fromUserId      String
+  toUserId        String
+  propertyId      String
+  message         String?
+  via             String?
+  offerAmountInr  Int?
+  offerStatus     String?  // pending | accepted | declined | countered | withdrawn
+  status          String   @default("new") // new | contacted | qualified | lost
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   fromUser    User     @relation("LeadFromUser", fields: [fromUserId], references: [id], onDelete: Cascade)
   toUser      User     @relation("LeadToUser", fields: [toUserId], references: [id], onDelete: Cascade)
   property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  messages    Message[]
 
+  @@unique([fromUserId, toUserId, propertyId])
   @@index([toUserId, createdAt])
+  @@index([status, createdAt])
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  leadId      String
+  fromUserId  String
+  body        String
+  createdAt   DateTime @default(now())
+  readAt      DateTime?
+
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, createdAt])
+}
+
+model VisitRequest {
+  id           String   @id @default(cuid())
+  propertyId   String
+  userId       String?
+  name         String
+  phone        String
+  slot         String
+  scheduledFor DateTime
+  status       String   @default("pending") // pending | confirmed | completed | cancelled
+  note         String?
+  createdAt    DateTime @default(now())
+
+  property     Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([propertyId])
+  @@index([status, scheduledFor])
+}
+
+model SavedSearch {
+  id           String   @id @default(cuid())
+  userId       String
+  label        String
+  /// Free-form filter object: { intent, kind, city, budgetMin, budgetMax, bhk, radiusKm, origin: {lat,lng}, amenities[] }
+  query        Json
+  frequency    String   @default("daily") // instant | daily | weekly
+  lastSentAt   DateTime?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([active, frequency])
+}
+
+model Verification {
+  id               String   @id @default(cuid())
+  userId           String
+  aadhaarFrontUrl  String
+  aadhaarBackUrl   String?
+  selfieUrl        String?
+  panUrl           String?
+  titleDocUrl      String?
+  status           String   @default("pending") // pending | approved | rejected
+  note             String?
+  reviewedBy       String?
+  reviewedAt       DateTime?
+  createdAt        DateTime @default(now())
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
+model Review {
+  id           String   @id @default(cuid())
+  propertyId   String?
+  authorId     String
+  subjectId    String?  // optional: review of a seller/agent profile
+  rating       Int      // 1..5
+  body         String
+  createdAt    DateTime @default(now())
+
+  property     Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  author       User      @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  subject      User?     @relation("ReviewSubject", fields: [subjectId], references: [id], onDelete: SetNull)
+
+  @@unique([propertyId, authorId])
+  @@index([propertyId, createdAt])
+  @@index([subjectId, createdAt])
+}
+
+model Project {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  name            String
+  builder         String
+  description     String?
+  city            String
+  locality        String
+  state           String
+  pincode         String?
+  lat             Float
+  lng             Float
+  startDate       DateTime?
+  possessionDate  DateTime?
+  totalUnits      Int?
+  reraId          String?
+  amenities       String[]
+  coverUrl        String
+  gallery         String[]
+  status          String   @default("ongoing") // ongoing | upcoming | completed
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  properties      Property[]
+
+  @@index([city, locality])
+  @@index([status, createdAt])
+}
+
+model LocalityInsight {
+  id            String   @id @default(cuid())
+  cityKey       String   // lower-cased city
+  localityKey   String   // lower-cased locality
+  lat           Float
+  lng           Float
+  /// Free-form JSON: { amenities: {schools, hospitals, metro, malls, banks}, demographics?, lastSource: "overpass" }
+  data          Json
+  fetchedAt     DateTime @default(now())
+
+  @@unique([cityKey, localityKey])
+  @@index([fetchedAt])
+}
+
+model BrokerProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  slug            String   @unique
+  agencyName      String
+  panNumber       String?
+  reraNumber      String?
+  reraVerified    Boolean  @default(false)
+  city            String
+  state           String
+  bio             String?
+  avatarUrl       String?
+  /// Default commission % the broker charges when a listing has no override.
+  defaultCommissionPct Float  @default(1.0)
+  payoutMethod    String?  // "upi" | "bank"
+  payoutDetails   Json?    // { upi?: string, accountNumber?, ifsc?, holderName? }
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([city, active])
+  @@index([reraVerified])
+}
+
+model BrokerReferral {
+  id                   String   @id @default(cuid())
+  brokerId             String   // BrokerProfile.userId (FK to User for simplicity)
+  buyerId              String
+  propertyId           String
+  leadId               String?  // links to the Lead row created in chat/offer flow
+  commissionPct        Float
+  /// Expected commission = property.priceInr * commissionPct / 100, snapshotted at refer time.
+  expectedCommissionInr Int
+  status               String   @default("pending") // pending | offer_accepted | closed | lost | expired
+  note                 String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  broker     User     @relation("BrokerOfReferral", fields: [brokerId], references: [id], onDelete: Cascade)
+  buyer      User     @relation("BuyerOfReferral",  fields: [buyerId],  references: [id], onDelete: Cascade)
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  commissions Commission[]
+
+  @@unique([brokerId, buyerId, propertyId])
+  @@index([brokerId, status, createdAt])
+  @@index([propertyId])
+}
+
+model Commission {
+  id          String   @id @default(cuid())
+  brokerId    String
+  referralId  String
+  amountInr   Int
+  status      String   @default("pending") // pending | approved | paid | cancelled
+  note        String?
+  paidAt      DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  broker      User           @relation(fields: [brokerId], references: [id], onDelete: Cascade)
+  referral    BrokerReferral @relation(fields: [referralId], references: [id], onDelete: Cascade)
+
+  @@index([brokerId, status, createdAt])
+}
+
+model PushSubscription {
+  id            String   @id @default(cuid())
+  userId        String?
+  endpoint      String   @unique
+  p256dh        String
+  auth          String
+  userAgent     String?
+  createdAt     DateTime @default(now())
+
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
 }
 
 model OtpCode {
