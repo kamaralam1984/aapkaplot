@@ -1,15 +1,74 @@
 import Link from "next/link";
-import { Users, ListChecks, Inbox, IndianRupee, ShieldAlert, ArrowRight } from "lucide-react";
+import { Users, ListChecks, Inbox, IndianRupee, ShieldAlert, ArrowRight, Activity } from "lucide-react";
 import { SectionHeader } from "@/components/dashboard/SectionHeader";
 import { StatCard } from "@/components/dashboard/StatCard";
-import {
-  MOCK_ADMIN_KPIS, MOCK_MODERATION, MOCK_USERS, getPropertyById,
-} from "@/lib/mock-dashboard";
-import { formatInr, formatRelativeTime } from "@/lib/format";
+import { prisma } from "@/server/db";
+import { formatInr } from "@/lib/format";
 
-export default function AdminOverview() {
-  const recentMod = MOCK_MODERATION.slice(0, 4);
-  const recentUsers = MOCK_USERS.slice(0, 5);
+export const dynamic = "force-dynamic";
+
+function relativeTime(d: Date) {
+  const diff = (Date.now() - d.getTime()) / 1000;
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+export default async function AdminOverview() {
+  if (process.env.USE_DB !== "1") {
+    return (
+      <div className="space-y-6">
+        <SectionHeader eyebrow="Operations" title="Platform health" subtitle="DB-off mode" />
+        <div className="surface-card p-6 text-[13.5px] text-rose-700">
+          DB is disabled (USE_DB ≠ 1). Set USE_DB=1 in .env.local and rebuild to enable real stats.
+        </div>
+      </div>
+    );
+  }
+
+  const since7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+  const [
+    totalUsers,
+    weeklySignups,
+    activeListings,
+    pendingReview,
+    leads30d,
+    revenue30d,
+    recentUsers,
+    recentProperties,
+    recentAudit,
+  ] = await Promise.all([
+    prisma.user.count(),
+    prisma.user.count({ where: { createdAt: { gte: since7d } } }),
+    prisma.property.count({ where: { status: "ACTIVE" } }),
+    prisma.property.count({ where: { status: "PENDING_REVIEW" } }),
+    prisma.lead.count({ where: { createdAt: { gte: since30d } } }),
+    prisma.payment.aggregate({
+      where: { status: "paid", createdAt: { gte: since30d } },
+      _sum: { amountInr: true },
+    }),
+    prisma.user.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 6,
+      select: { id: true, email: true, name: true, role: true, createdAt: true },
+    }),
+    prisma.property.findMany({
+      where: { status: "PENDING_REVIEW" },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: { id: true, title: true, city: true, locality: true, priceInr: true, createdAt: true },
+    }),
+    prisma.adminAuditLog.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 8,
+      select: { id: true, action: true, targetType: true, targetId: true, actorEmail: true, createdAt: true },
+    }),
+  ]);
+
+  const revenueInr = revenue30d._sum.amountInr ?? 0;
 
   return (
     <div className="space-y-8">
@@ -20,46 +79,64 @@ export default function AdminOverview() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total users"  value={MOCK_ADMIN_KPIS.totalUsers.toLocaleString("en-IN")} delta={{ value: `+${MOCK_ADMIN_KPIS.weeklySignups} / wk`, direction: "up" }} icon={Users} tone="violet" />
-        <StatCard label="Active listings" value={MOCK_ADMIN_KPIS.activeListings.toLocaleString("en-IN")} delta={{ value: "+312 this week", direction: "up" }} icon={ListChecks} tone="emerald" />
-        <StatCard label="Leads (30d)"  value={MOCK_ADMIN_KPIS.monthlyLeads.toLocaleString("en-IN")} delta={{ value: "+14%", direction: "up" }} icon={Inbox} tone="sky" />
-        <StatCard label="Revenue (30d)" value={formatInr(MOCK_ADMIN_KPIS.monthlyRevenueInr)} delta={{ value: "+22%", direction: "up" }} icon={IndianRupee} tone="amber" />
+        <StatCard
+          label="Total users"
+          value={totalUsers.toLocaleString("en-IN")}
+          delta={{ value: `+${weeklySignups} / wk`, direction: weeklySignups > 0 ? "up" : "flat" }}
+          icon={Users}
+          tone="violet"
+        />
+        <StatCard
+          label="Active listings"
+          value={activeListings.toLocaleString("en-IN")}
+          delta={{ value: `${pendingReview} pending review`, direction: pendingReview > 0 ? "up" : "flat" }}
+          icon={ListChecks}
+          tone="emerald"
+        />
+        <StatCard
+          label="Leads (30d)"
+          value={leads30d.toLocaleString("en-IN")}
+          delta={{ value: "rolling", direction: "flat" }}
+          icon={Inbox}
+          tone="sky"
+        />
+        <StatCard
+          label="Revenue (30d)"
+          value={formatInr(revenueInr)}
+          delta={{ value: "razorpay only", direction: "flat" }}
+          icon={IndianRupee}
+          tone="amber"
+        />
       </div>
 
       <section className="grid gap-6 lg:grid-cols-2">
         <div className="surface-card overflow-hidden">
           <header className="flex items-center justify-between border-b border-ink-200/70 px-5 py-3.5">
             <div className="flex items-center gap-2">
-              <span className="grid h-7 w-7 place-items-center rounded-lg bg-rose-50 text-rose-600">
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-amber-50 text-amber-700">
                 <ShieldAlert className="h-3.5 w-3.5" />
               </span>
-              <h3 className="text-[14px] font-bold text-ink-900">Moderation queue</h3>
+              <h3 className="text-[14px] font-bold text-ink-900">Pending review</h3>
             </div>
-            <Link href="/admin/moderation" className="text-[12.5px] font-semibold text-brand-600 hover:underline">
+            <Link href="/admin/properties?status=PENDING_REVIEW" className="text-[12.5px] font-semibold text-brand-600 hover:underline">
               Review all <ArrowRight className="inline h-3 w-3" />
             </Link>
           </header>
           <ul className="divide-y divide-ink-200/70">
-            {recentMod.map((m) => {
-              const p = getPropertyById(m.propertyId);
-              return (
-                <li key={m.id} className="flex items-center justify-between px-5 py-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-[13px] font-semibold text-ink-900">{p?.title ?? m.propertyId}</p>
-                    <p className="text-[11.5px] text-ink-500">{m.reason} · {formatRelativeTime(m.createdAt)}</p>
-                  </div>
-                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                    m.severity === "high"
-                      ? "bg-rose-50 text-rose-700"
-                      : m.severity === "medium"
-                      ? "bg-amber-50 text-amber-700"
-                      : "bg-ink-100 text-ink-700"
-                  }`}>
-                    {m.severity}
-                  </span>
-                </li>
-              );
-            })}
+            {recentProperties.length === 0 && (
+              <li className="px-5 py-6 text-[13px] text-ink-500 text-center">Queue empty.</li>
+            )}
+            {recentProperties.map((p) => (
+              <li key={p.id} className="flex items-center gap-3 px-5 py-3">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[13px] font-semibold text-ink-900">{p.title}</p>
+                  <p className="truncate text-[11.5px] text-ink-500">
+                    {p.locality}, {p.city} · {formatInr(p.priceInr)}
+                  </p>
+                </div>
+                <span className="text-[11.5px] text-ink-500">{relativeTime(p.createdAt)}</span>
+              </li>
+            ))}
           </ul>
         </div>
 
@@ -76,20 +153,54 @@ export default function AdminOverview() {
             </Link>
           </header>
           <ul className="divide-y divide-ink-200/70">
+            {recentUsers.length === 0 && (
+              <li className="px-5 py-6 text-[13px] text-ink-500 text-center">No users yet.</li>
+            )}
             {recentUsers.map((u) => (
               <li key={u.id} className="flex items-center gap-3 px-5 py-3">
                 <span className="grid h-8 w-8 place-items-center rounded-full bg-brand-gradient text-[12px] font-bold text-white">
-                  {u.name.slice(0, 1)}
+                  {(u.name ?? u.email ?? "?").slice(0, 1).toUpperCase()}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-semibold text-ink-900">{u.name}</p>
-                  <p className="truncate text-[11.5px] text-ink-500">{u.phone} · {u.role}</p>
+                  <p className="truncate text-[13px] font-semibold text-ink-900">{u.name ?? u.email ?? "—"}</p>
+                  <p className="truncate text-[11.5px] text-ink-500">{u.email ?? "—"} · {u.role}</p>
                 </div>
-                <span className="text-[11.5px] text-ink-500">{formatRelativeTime(u.joinedAt)}</span>
+                <span className="text-[11.5px] text-ink-500">{relativeTime(u.createdAt)}</span>
               </li>
             ))}
           </ul>
         </div>
+      </section>
+
+      <section className="surface-card overflow-hidden">
+        <header className="flex items-center justify-between border-b border-ink-200/70 px-5 py-3.5">
+          <div className="flex items-center gap-2">
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-sky-50 text-sky-700">
+              <Activity className="h-3.5 w-3.5" />
+            </span>
+            <h3 className="text-[14px] font-bold text-ink-900">Recent admin activity</h3>
+          </div>
+          <Link href="/admin/audit" className="text-[12.5px] font-semibold text-brand-600 hover:underline">
+            Open audit log <ArrowRight className="inline h-3 w-3" />
+          </Link>
+        </header>
+        <ul className="divide-y divide-ink-200/70">
+          {recentAudit.length === 0 && (
+            <li className="px-5 py-6 text-[13px] text-ink-500 text-center">
+              No admin activity yet — start moderating from /admin/properties.
+            </li>
+          )}
+          {recentAudit.map((a) => (
+            <li key={a.id} className="flex items-center gap-3 px-5 py-3 text-[12.5px]">
+              <span className="font-mono text-ink-700">{a.action}</span>
+              <span className="text-ink-500">on</span>
+              <span className="font-mono text-ink-700">{a.targetType}:{a.targetId.slice(0, 12)}…</span>
+              <span className="ml-auto text-ink-500">
+                {a.actorEmail ?? "—"} · {relativeTime(a.createdAt)}
+              </span>
+            </li>
+          ))}
+        </ul>
       </section>
     </div>
   );

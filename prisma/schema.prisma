@@ -22,6 +22,21 @@ enum UserRole {
   SUPER_ADMIN
 }
 
+model AdminAuditLog {
+  id          String   @id @default(cuid())
+  actorId     String
+  actorEmail  String?
+  action      String   // e.g. "property.approve", "user.suspend", "user.delete"
+  targetType  String   // "property" | "user"
+  targetId    String
+  meta        Json?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorId])
+  @@index([targetType, targetId])
+}
+
 enum PropertyKind {
   PLOT
   FLAT

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/server/db";
 import { requireAdmin, requireSuperAdmin } from "@/lib/admin-guard";
+import { recordAudit, type AuditAction } from "@/lib/audit";
 
 export const runtime = "nodejs";
 
@@ -45,6 +46,16 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       },
       select: { id: true, status: true, verified: true, title: true },
     });
+
+    // Pick the most specific audit action for the change so the activity feed
+    // reads naturally (Approve vs generic update).
+    let action: AuditAction = "property.update";
+    if (data.status === "ACTIVE") action = "property.approve";
+    else if (data.status === "REJECTED") action = "property.reject";
+    else if (data.status === "PAUSED") action = "property.pause";
+    else if (data.verified === true && data.status === undefined) action = "property.verify";
+    void recordAudit(guard.session, action, "property", id, data as Record<string, unknown>);
+
     return NextResponse.json({ ok: true, property: updated });
   } catch (e) {
     return NextResponse.json({ error: "not_found_or_db_error", message: (e as Error).message }, { status: 404 });
@@ -59,7 +70,12 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
 
   const { id } = await ctx.params;
   try {
+    const before = await prisma.property.findUnique({
+      where: { id },
+      select: { title: true, status: true, ownerId: true },
+    });
     await prisma.property.delete({ where: { id } });
+    void recordAudit(guard.session, "property.delete", "property", id, before ?? undefined);
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: "not_found_or_db_error", message: (e as Error).message }, { status: 404 });

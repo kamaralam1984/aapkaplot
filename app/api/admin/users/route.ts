@@ -3,6 +3,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/server/db";
 import { requireAdmin } from "@/lib/admin-guard";
+import { recordAudit } from "@/lib/audit";
 
 export const runtime = "nodejs";
 
@@ -92,6 +93,7 @@ export async function POST(req: Request) {
       },
       select: { id: true, email: true, role: true },
     });
+    void recordAudit(guard.session, "user.create", "user", created.id, { email: lower, role });
     return NextResponse.json({ ok: true, user: created }, { status: 201 });
   } catch (e) {
     const msg = (e as Error).message;

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/server/db";
 import { requireAdmin, requireSuperAdmin } from "@/lib/admin-guard";
+import { recordAudit, type AuditAction } from "@/lib/audit";
 
 export const runtime = "nodejs";
 
@@ -46,6 +47,13 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       data: parsed.data,
       select: { id: true, email: true, role: true, suspended: true },
     });
+
+    let action: AuditAction = "user.update";
+    if (parsed.data.role !== undefined) action = "user.role";
+    else if (parsed.data.suspended === true) action = "user.suspend";
+    else if (parsed.data.suspended === false) action = "user.reactivate";
+    void recordAudit(guard.session, action, "user", id, parsed.data as Record<string, unknown>);
+
     return NextResponse.json({ ok: true, user: updated });
   } catch (e) {
     return NextResponse.json({ error: "not_found_or_db_error", message: (e as Error).message }, { status: 404 });
@@ -63,7 +71,12 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
   }
 
   try {
+    const before = await prisma.user.findUnique({
+      where: { id },
+      select: { email: true, name: true, role: true },
+    });
     await prisma.user.delete({ where: { id } });
+    void recordAudit(guard.session, "user.delete", "user", id, before ?? undefined);
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: "not_found_or_db_error", message: (e as Error).message }, { status: 404 });
