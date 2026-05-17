@@ -141,6 +141,10 @@ model Property {
   lng          Float
   /// PostGIS geography point. Populated via trigger or raw SQL update.
   geom         Unsupported("geography(Point,4326)")?
+  /// Optional plot/compound polygon as a GeoJSON ring (array of [lng, lat] pairs).
+  /// Stored as JSONB so simple admin/UI inspection stays cheap; PostGIS-side
+  /// geography column can be added later when boundary-based search lands.
+  boundary     Json?
 
   coverUrl     String
   gallery      String[]

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import nextDynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft, ArrowRight, Check, Building, MapPin, Image as ImageIcon, IndianRupee, CheckCircle2,
@@ -12,6 +13,20 @@ import { cn } from "@/lib/utils";
 import type { AmenityId, PropertyKind } from "@/lib/types";
 import { AMENITIES_CATALOG } from "@/lib/property-detail";
 import { useToast } from "@/components/ui/Toast";
+import type { LocationValue } from "./LocationPicker";
+
+// MapLibre touches `window` on import, so the picker has to be lazy-loaded.
+// Keeping it out of the initial bundle also drops ~70 kB off the
+// /sell/new First Load JS.
+const LocationPicker = nextDynamic(
+  () => import("./LocationPicker").then((m) => ({ default: m.LocationPicker })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[360px] w-full animate-pulse rounded-2xl border border-ink-200 bg-ink-100/60" />
+    ),
+  },
+);
 
 type Step = 0 | 1 | 2 | 3 | 4;
 
@@ -46,6 +61,11 @@ interface ListingDraft {
   city: string;
   state: string;
   pincode: string;
+  /** Exact GPS coordinates of the listing (manual or picked from map). */
+  lat: number | null;
+  lng: number | null;
+  /** Optional polygon outlining the plot/compound — array of [lng, lat]. */
+  boundary: [number, number][];
   amenities: AmenityId[];
   photos: { name: string; url: string }[];
   youtubeUrl?: string;
@@ -65,6 +85,9 @@ const EMPTY: ListingDraft = {
   city: "",
   state: "",
   pincode: "",
+  lat: null,
+  lng: null,
+  boundary: [],
   amenities: [],
   photos: [],
   negotiable: true,
@@ -112,6 +135,9 @@ export function NewListingForm() {
           city: draft.city.trim(),
           state: draft.state.trim(),
           pincode: draft.pincode || undefined,
+          lat: draft.lat ?? undefined,
+          lng: draft.lng ?? undefined,
+          boundary: draft.boundary.length >= 3 ? draft.boundary : undefined,
           amenities: draft.amenities,
           photos: draft.photos.map((p) => ({ name: p.name, url: p.url })),
           youtubeUrl: draft.youtubeUrl || undefined,
@@ -386,6 +412,16 @@ function PropertyStep({ draft, update }: { draft: ListingDraft; update: <K exten
 }
 
 function LocationStep({ draft, update }: { draft: ListingDraft; update: <K extends keyof ListingDraft>(k: K, v: ListingDraft[K]) => void }) {
+  const onPickerChange = (v: LocationValue) => {
+    update("lat", v.lat);
+    update("lng", v.lng);
+    update("boundary", v.boundary);
+  };
+  const onReverseGeo = (geo: { city: string; state: string }) => {
+    if (geo.city && !draft.city) update("city", geo.city);
+    if (geo.state && !draft.state) update("state", geo.state);
+  };
+
   return (
     <div className="space-y-5">
       <h2 className="text-[16px] font-bold text-ink-900">Where is it?</h2>
@@ -408,12 +444,20 @@ function LocationStep({ draft, update }: { draft: ListingDraft; update: <K exten
         </Field>
       </div>
 
-      <button
-        type="button"
-        className="inline-flex h-11 items-center gap-2 rounded-xl border border-brand-500/40 bg-brand-50 px-3.5 text-[13px] font-semibold text-brand-700 hover:bg-brand-100"
-      >
-        <MapPin className="h-4 w-4" /> Drop a pin on the map (optional)
-      </button>
+      <div>
+        <p className="mb-1 text-[11.5px] font-semibold uppercase tracking-wider text-ink-500">
+          Pin location &amp; boundary
+        </p>
+        <p className="mb-3 text-[12px] text-ink-500">
+          Tap <strong>Use my location</strong> to auto-fill, or click anywhere on the map to drop a pin.
+          Switch to <strong>Draw boundary</strong> to outline a plot — great for land &amp; large compounds.
+        </p>
+        <LocationPicker
+          value={{ lat: draft.lat, lng: draft.lng, boundary: draft.boundary }}
+          onChange={onPickerChange}
+          onReverseGeo={onReverseGeo}
+        />
+      </div>
     </div>
   );
 }

@@ -31,6 +31,13 @@ const Body = z.object({
   brokerCommissionPct: z.number().min(0.5).max(5).optional(),
   lat: z.number().min(-90).max(90).optional(),
   lng: z.number().min(-180).max(180).optional(),
+  /** Optional plot/compound polygon as a GeoJSON ring of [lng, lat] pairs.
+   *  Validated as ≥ 3 vertices; the closing vertex is added server-side. */
+  boundary: z
+    .array(z.tuple([z.number().min(-180).max(180), z.number().min(-90).max(90)]))
+    .min(3)
+    .max(64)
+    .optional(),
 });
 
 function toEnumKind(k: z.infer<typeof Body>["kind"]) {
@@ -95,6 +102,7 @@ export async function POST(req: Request) {
         allowsBrokers: d.allowsBrokers ?? false,
         brokerCommissionPct: d.brokerCommissionPct ?? null,
         ownerId: session.uid,
+        boundary: d.boundary ? (d.boundary as unknown as object) : undefined,
       },
       select: { id: true, status: true, createdAt: true },
     });
