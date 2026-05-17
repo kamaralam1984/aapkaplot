@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { ServiceWorkerRegister } from "@/components/layout/ServiceWorkerRegister";
 import { LazyClient } from "@/components/layout/LazyClient";
+import { VisitBeacon } from "@/components/layout/VisitBeacon";
 import { ToastProvider } from "@/components/ui/Toast";
 import { CompareDock } from "@/components/property/CompareDock";
 import { GoogleAnalytics } from "@/components/seo/GoogleAnalytics";
@@ -114,6 +115,7 @@ export default function RootLayout({
             <CompareDock />
             <CookieConsent />
             <ServiceWorkerRegister />
+            <VisitBeacon />
           </LazyClient>
         </ToastProvider>
       </body>

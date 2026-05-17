@@ -455,6 +455,41 @@ model PushSubscription {
   @@index([userId])
 }
 
+/// Live visitor tracking — one row per browser session, updated on every
+/// page hit by the client-side beacon at /api/track/visit. The admin
+/// /admin/visitors page reads from here.
+model Visit {
+  id            String    @id @default(cuid())
+  /// Anonymous session token kept in localStorage / sessionStorage.
+  sessionId     String    @unique
+  userId        String?
+  /// Cached at first beacon so the table renders fast without joining User.
+  userName      String?
+  userEmail     String?
+  ip            String?
+  country       String?
+  region        String?
+  city          String?
+  district      String?
+  postalCode    String?
+  lat           Float?
+  lng           Float?
+  userAgent     String?
+  referrer      String?
+  /// CSV-ish list of property IDs the visitor opened during the session.
+  propertiesViewed String[]
+  /// Last URL the beacon reported.
+  lastPath      String?
+  pageviews     Int       @default(1)
+  landedAt      DateTime  @default(now())
+  lastSeenAt    DateTime  @default(now())
+
+  @@index([landedAt])
+  @@index([lastSeenAt])
+  @@index([country])
+  @@index([userId])
+}
+
 model OtpCode {
   id         String   @id @default(cuid())
   userId     String?
