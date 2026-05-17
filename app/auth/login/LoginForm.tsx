@@ -179,10 +179,14 @@ function OAuthBtn({
       csrf.value = csrfToken;
       form.appendChild(csrf);
 
+      // After Google approves, NextAuth lands on /api/auth/oauth-bridge,
+      // which decodes the NextAuth JWT, upserts the user in our DB, and
+      // issues an `akp_session` cookie so every other route treats them
+      // as signed in (instead of just NextAuth seeing them).
       const cb = document.createElement("input");
       cb.type = "hidden";
       cb.name = "callbackUrl";
-      cb.value = window.location.origin + "/";
+      cb.value = `${window.location.origin}/api/auth/oauth-bridge?next=/me`;
       form.appendChild(cb);
 
       document.body.appendChild(form);
