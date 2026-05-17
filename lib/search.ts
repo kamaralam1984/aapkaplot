@@ -1,5 +1,6 @@
 import { MOCK_PROPERTIES, DEFAULT_ORIGIN } from "./mock-data";
 import { haversineKm } from "./haversine";
+import { listProperties } from "./data/properties";
 import type { Property } from "./types";
 import type { ParsedSearchFilters } from "./search-params";
 
@@ -15,22 +16,28 @@ export interface SearchResult {
 }
 
 /**
- * Run filters → distance → sort → paginate. Pure function so the server
- * component can compute SSR-friendly results from the URL.
+ * Run filters → distance → sort → paginate.
+ *
+ * Now async + DB-aware: when USE_DB=1, `listProperties()` returns live
+ * ACTIVE rows from Postgres instead of MOCK_PROPERTIES, so a seller-
+ * posted plot at ₹70 L in Patna actually surfaces when a buyer searches
+ * "Plot · Under ₹70 L · 40 km of Patna".
+ *
+ * When the DB is off (dev / preview), the same function falls back to
+ * the mock catalogue so the page never renders empty during development.
  */
-export function runSearch(filters: ParsedSearchFilters): SearchResult {
+export async function runSearch(filters: ParsedSearchFilters): Promise<SearchResult> {
   const origin =
     filters.originLat != null && filters.originLng != null
       ? { lat: filters.originLat, lng: filters.originLng }
       : DEFAULT_ORIGIN;
 
-  // 1. Filter
-  let items: (Property & { distanceKm: number })[] = MOCK_PROPERTIES.map(
-    (p) => ({
-      ...p,
-      distanceKm: haversineKm(origin, p.location.coords),
-    })
-  );
+  // 1. Pull the catalogue (DB-or-mock) and decorate with distance.
+  const catalogue = await listProperties().catch(() => MOCK_PROPERTIES);
+  let items: (Property & { distanceKm: number })[] = catalogue.map((p) => ({
+    ...p,
+    distanceKm: haversineKm(origin, p.location.coords),
+  }));
 
   if (filters.q) {
     const q = filters.q.toLowerCase().trim();

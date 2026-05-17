@@ -32,10 +32,14 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   };
 }
 
+// runSearch hits Postgres (via listProperties), so the page can't be
+// statically cached — newly approved listings must surface immediately.
+export const dynamic = "force-dynamic";
+
 export default async function SearchPage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const filters = parseSearchParams(sp);
-  const { items, total, page, totalPages, origin } = runSearch(filters);
+  const { items, total, page, totalPages, origin } = await runSearch(filters);
 
   return (
     <>
