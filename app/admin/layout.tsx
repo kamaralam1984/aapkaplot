@@ -46,6 +46,7 @@ export default async function AdminLayout({
         { href: "/admin/performance",  label: "Performance",   icon: "activity" },
         { href: "/admin/system-log",   label: "System log",    icon: "activity" },
         { href: "/admin/audit",        label: "Audit log",     icon: "activity" },
+        { href: "/admin/database",     label: "Database",      icon: "activity" },
       ]}
     >
       {children}
