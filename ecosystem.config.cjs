@@ -24,7 +24,7 @@ module.exports = {
         NODE_ENV: "production",
         PORT: "3001",
         HOSTNAME: "127.0.0.1",
-        NEXT_PUBLIC_SITE_URL: "https://8rupiya.in",
+        NEXT_PUBLIC_SITE_URL: "https://aapkaplot.com",
         // Secret values live in .env.local on the VPS (gitignored).
         // PM2 reads them via Next.js' built-in env loader on cold start.
       },

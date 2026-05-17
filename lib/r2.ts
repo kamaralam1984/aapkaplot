@@ -25,7 +25,7 @@ export function isR2Configured(): boolean {
 export function publicUrlFor(key: string): string {
   // R2 buckets are private by default. To make uploaded media reachable:
   //   1. Enable "R2.dev subdomain" on the bucket → `https://pub-<id>.r2.dev`
-  //   2. OR add a custom domain (e.g. media.8rupiya.in) and a CNAME to the
+  //   2. OR add a custom domain (e.g. media.aapkaplot.com) and a CNAME to the
   //      R2 bucket. Set R2_PUBLIC_BASE to that domain.
   const base = process.env.R2_PUBLIC_BASE?.replace(/\/$/, "");
   if (base) return `${base}/${key}`;

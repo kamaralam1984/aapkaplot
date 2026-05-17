@@ -48,7 +48,7 @@ cd "$APP_DIR"
 if [ ! -f "$APP_DIR/.env.local" ]; then
   log "Generating .env.local with fresh secrets…"
   cat > "$APP_DIR/.env.local" <<EOF
-NEXT_PUBLIC_SITE_URL=https://8rupiya.in
+NEXT_PUBLIC_SITE_URL=https://aapkaplot.com
 NODE_ENV=production
 JWT_SECRET=$(openssl rand -hex 32)
 AUTH_SECRET=$(openssl rand -hex 32)
@@ -90,13 +90,13 @@ npm run build
 
 # ── Patch cloudflared config (idempotent) ──────────────────────────────
 if [ -f "$CF_CONFIG" ]; then
-  if grep -q "8rupiya.in" "$CF_CONFIG"; then
-    log "cloudflared already has 8rupiya.in routes."
+  if grep -q "aapkaplot.com" "$CF_CONFIG"; then
+    log "cloudflared already has aapkaplot.com routes."
   else
-    log "Adding 8rupiya.in ingress rules to $CF_CONFIG…"
+    log "Adding aapkaplot.com ingress rules to $CF_CONFIG…"
     cp "$CF_CONFIG" "${CF_CONFIG}.bak.$(date +%Y%m%d-%H%M%S)"
     # Insert before the catch-all 404 rule.
-    sed -i '/service: http_status:404/i \  - hostname: www.8rupiya.in\n    service: http://localhost:3001\n  - hostname: 8rupiya.in\n    service: http://localhost:3001' "$CF_CONFIG"
+    sed -i '/service: http_status:404/i \  - hostname: www.aapkaplot.com\n    service: http://localhost:3001\n  - hostname: aapkaplot.com\n    service: http://localhost:3001' "$CF_CONFIG"
     log "Reloading cloudflared…"
     systemctl restart cloudflared
   fi
@@ -131,7 +131,7 @@ Useful commands:
   systemctl status cloudflared
   curl -sI http://127.0.0.1:${APP_PORT}/ | head -5
 
-Next: ask Claude to switch the 8rupiya.in CNAMEs to the tunnel
+Next: ask Claude to switch the aapkaplot.com CNAMEs to the tunnel
       so traffic stops hitting Cloudflare Pages and lands here instead.
 ────────────────────────────────────────────────────────────
 EOF

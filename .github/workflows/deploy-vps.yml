@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   deploy:
-    name: Webhook → 8rupiya.in
+    name: Webhook → aapkaplot.com
     runs-on: ubuntu-latest
     timeout-minutes: 12
 
@@ -28,7 +28,7 @@ jobs:
           set -e
           echo "── Triggered by: ${{ github.actor }} on commit ${{ github.sha }}"
           STATUS=$(curl -sS -o /tmp/resp.json -w "%{http_code}" \
-            -X POST https://8rupiya.in/api/deploy/pull \
+            -X POST https://aapkaplot.com/api/deploy/pull \
             -H "Authorization: Bearer ${DEPLOY_WEBHOOK_TOKEN}" \
             --max-time 30)
           echo "Webhook status: $STATUS"
@@ -43,7 +43,7 @@ jobs:
           deadline=$(( $(date +%s) + 240 ))
           while [ $(date +%s) -lt $deadline ]; do
             sleep 10
-            code=$(curl -sIo /dev/null -w "%{http_code}" --max-time 10 "https://8rupiya.in/about?v=${{ github.sha }}")
+            code=$(curl -sIo /dev/null -w "%{http_code}" --max-time 10 "https://aapkaplot.com/about?v=${{ github.sha }}")
             echo "  /about → HTTP $code"
             if [ "$code" = "200" ]; then
               echo "✓ Deploy live"
@@ -58,7 +58,7 @@ jobs:
           set -e
           fail=0
           for url in / /about /contact /careers /press /ai-technology /help /blog /privacy /terms /cookies /sitemap; do
-            code=$(curl -sIo /dev/null -w "%{http_code}" --max-time 15 "https://8rupiya.in$url")
+            code=$(curl -sIo /dev/null -w "%{http_code}" --max-time 15 "https://aapkaplot.com$url")
             echo "  $url → HTTP $code"
             [ "$code" = "200" ] || fail=1
           done

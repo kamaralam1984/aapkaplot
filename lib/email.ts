@@ -65,7 +65,7 @@ async function sendViaSmtp(args: SendArgs, from: string): Promise<{ ok: boolean;
 
   // Gmail SMTP rewrites/rejects when the From address doesn't match the
   // authenticated user. Force the From mailbox to SMTP_USER but keep the
-  // display name, so the inbox shows "AapKaPlot <8rupiya@gmail.com>".
+  // display name, so the inbox shows "AapKaPlot <noreply@aapkaplot.com>".
   const smtpUser = process.env.SMTP_USER;
   let envelopeFrom = from;
   if (smtpUser) {
@@ -129,7 +129,7 @@ export function otpEmailContent(code: string): { subject: string; html: string; 
         <p style="color:#475569;margin:0 0 24px">Enter this code in your browser to sign in.</p>
         <div style="background:#ecfdf5;border:1px solid #10b981;border-radius:12px;padding:18px;text-align:center;font-size:30px;font-weight:800;letter-spacing:8px;color:#065f46">${code}</div>
         <p style="color:#64748b;font-size:13px;margin:20px 0 0">This code expires in 10 minutes. If you didn't request it, ignore this email.</p>
-        <p style="color:#94a3b8;font-size:12px;margin:24px 0 0;border-top:1px solid #e2e8f0;padding-top:12px">— AapKaPlot · 8rupiya.in</p>
+        <p style="color:#94a3b8;font-size:12px;margin:24px 0 0;border-top:1px solid #e2e8f0;padding-top:12px">— AapKaPlot · aapkaplot.com</p>
       </div>
     `,
   };

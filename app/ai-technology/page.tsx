@@ -88,7 +88,7 @@ export default function AiTechnologyPage() {
               ↓
    ┌────────────┴────────────┐
    ↓                         ↓
-:3000 vidyt.com         :3001 8rupiya.in (AapKaPlot)
+:3000 vidyt.com         :3001 aapkaplot.com (AapKaPlot)
                               ↓
                        Next.js 15 App Router
                               ↓
