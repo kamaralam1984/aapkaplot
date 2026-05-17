@@ -3,6 +3,10 @@ import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { ServiceWorkerRegister } from "@/components/layout/ServiceWorkerRegister";
 import { ToastProvider } from "@/components/ui/Toast";
 import { CompareDock } from "@/components/property/CompareDock";
+import { GoogleAnalytics } from "@/components/seo/GoogleAnalytics";
+import { GoogleAdSense } from "@/components/seo/GoogleAdSense";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { CookieConsent } from "@/components/legal/CookieConsent";
 import "./globals.css";
 
 const inter = Inter({
@@ -57,6 +61,21 @@ export const metadata: Metadata = {
   },
   alternates: { canonical: siteUrl },
   robots: { index: true, follow: true },
+  verification: {
+    // Set these in .env.local to expose the corresponding meta tags. Each
+    // resolves to <meta name="...-site-verification" content="..."> so the
+    // platform's "HTML tag" verification method works without uploading
+    // anything extra.
+    google: process.env.GOOGLE_SITE_VERIFICATION,
+    other: {
+      ...(process.env.AHREFS_SITE_VERIFICATION
+        ? { "ahrefs-site-verification": process.env.AHREFS_SITE_VERIFICATION }
+        : {}),
+      ...(process.env.FACEBOOK_DOMAIN_VERIFICATION
+        ? { "facebook-domain-verification": process.env.FACEBOOK_DOMAIN_VERIFICATION }
+        : {}),
+    },
+  },
 };
 
 export const viewport: Viewport = {
@@ -74,11 +93,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${inter.variable} ${jakarta.variable}`}>
+      <head>
+        <JsonLd />
+        <GoogleAdSense />
+      </head>
       <body className="min-h-screen bg-surface text-ink-900">
+        <GoogleAnalytics />
         <ToastProvider>
           {children}
           <CompareDock />
         </ToastProvider>
+        <CookieConsent />
         <ServiceWorkerRegister />
       </body>
     </html>

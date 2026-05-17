@@ -1,0 +1,11 @@
+# AapKaPlot — authorized digital sellers (ads.txt)
+# https://iabtechlab.com/ads-txt/
+#
+# Replace the placeholder line below with the line(s) Google AdSense
+# provides under "Account → Settings → Authorized sellers" once the
+# domain is approved. Format:
+#   google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0
+#
+# Until approval, this file just satisfies the existence check —
+# AdSense won't read the placeholder.
+placeholder.example.com, pub-0000000000000000, DIRECT, 0000000000000000
