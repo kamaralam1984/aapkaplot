@@ -149,7 +149,7 @@ function OAuthBtn({
     try {
       // Probe configuration. /providers returns 200 with the provider map
       // when ready, 503 with our hint when next-auth isn't wired up.
-      const probe = await fetch(`/api/auth/oauth/providers`, { cache: "no-store" });
+      const probe = await fetch(`/api/auth/providers`, { cache: "no-store" });
       if (probe.status === 503) {
         const data = await probe.json().catch(() => ({}));
         setErr(data.hint ?? "OAuth is not configured yet — please use the OTP login above.");
@@ -159,7 +159,7 @@ function OAuthBtn({
       // NextAuth signin requires a POST with CSRF. Submit a hidden form so
       // the browser follows the 302 to Google natively (preserves cookies,
       // avoids fetch redirect-mode quirks).
-      const csrfRes = await fetch(`/api/auth/oauth/csrf`, { cache: "no-store" });
+      const csrfRes = await fetch(`/api/auth/csrf`, { cache: "no-store" });
       const { csrfToken } = await csrfRes.json();
       if (!csrfToken) {
         setErr("Couldn't initiate OAuth (no CSRF token).");
@@ -168,7 +168,7 @@ function OAuthBtn({
 
       const form = document.createElement("form");
       form.method = "POST";
-      form.action = `/api/auth/oauth/signin/${provider}`;
+      form.action = `/api/auth/signin/${provider}`;
 
       const csrf = document.createElement("input");
       csrf.type = "hidden";
