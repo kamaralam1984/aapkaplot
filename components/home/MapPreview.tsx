@@ -2,18 +2,22 @@
 
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { MapPin, Plus, Minus, Locate, Satellite, Map as MapIcon } from "lucide-react";
+import { MapPin, Plus, Minus, Locate, Satellite, Map as MapIcon, Crosshair } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatInr } from "@/lib/format";
 import type { Property } from "@/lib/types";
 import { InteractiveMap, type MapMarker } from "@/components/maps/InteractiveMap";
-import { DEFAULT_ORIGIN } from "@/lib/mock-data";
 import { haversineKm } from "@/lib/haversine";
+import { useDeviceLocation } from "@/lib/use-device-location";
 
 // Search radius slider: 0 km → 20,000 km in 5 km steps (original wide range).
 const RADIUS_MIN_KM = 0;
 const RADIUS_MAX_KM = 20000;
 const RADIUS_STEP_KM = 5;
+
+/** Geographic centre of India — used as the map's neutral default when the
+ *  user hasn't set a location yet (better than pinning them to Kolkata). */
+const INDIA_CENTROID = { lat: 22.9734, lng: 78.6569 };
 
 function formatRadius(km: number): string {
   if (km === 0) return "0 km";
@@ -22,32 +26,39 @@ function formatRadius(km: number): string {
 
 interface MapPreviewProps {
   properties: Property[];
-  /** Where to centre the map + label as "Your Location". Falls back to Kolkata. */
-  center?: { lat: number; lng: number };
+  /** User's real coordinates. When undefined / null the map renders a neutral
+   *  India-wide view and replaces the "Your Location" card with a CTA. */
+  center?: { lat: number; lng: number } | null;
   city?: string;
   state?: string;
 }
 
 /**
- * Stylized map preview using a static Mapbox tile. When NEXT_PUBLIC_MAPBOX_TOKEN
- * is set, the URL renders a real basemap. Otherwise we fall back to a CSS
- * artwork so the page never breaks during local dev.
+ * Stylized map preview rendered with MapLibre + free OpenFreeMap tiles.
+ * Used in the homepage Hero; gracefully degrades to an India-wide
+ * "Set your location" empty state when the device location is unknown.
  */
 export function MapPreview({
   properties,
   center,
-  city = "Kolkata",
-  state = "West Bengal",
+  city,
+  state,
 }: MapPreviewProps) {
   const [view, setView] = useState<"map" | "satellite">("map");
   const [radius, setRadius] = useState(20); // km — default 20 km (slider goes 0–20,000)
-  const origin = center ?? DEFAULT_ORIGIN;
+  const { requesting, resolve } = useDeviceLocation();
 
-  // Only show properties within the chosen radius of the user's origin —
-  // this is what the slider is supposed to do but never wired before.
+  const hasUserLocation = Boolean(center && (city || state));
+  const origin = center ?? INDIA_CENTROID;
+  const mapZoom = hasUserLocation ? 11 : 4;
+
+  // Only show properties within the chosen radius of the user's origin.
+  // When there's no user location we keep the map empty rather than
+  // labeling random points as "X km from Kolkata".
   const liveMarkers = useMemo<MapMarker[]>(
-    () =>
-      properties
+    () => {
+      if (!hasUserLocation) return [];
+      return properties
         .map((p) => ({ p, dKm: haversineKm(origin, p.location.coords) }))
         .filter(({ dKm }) => dKm <= radius)
         .slice(0, 8)
@@ -56,8 +67,9 @@ export function MapPreview({
           lat: p.location.coords.lat,
           lng: p.location.coords.lng,
           label: formatInr(p.priceInr),
-        })),
-    [properties, origin.lat, origin.lng, radius]
+        }));
+    },
+    [properties, origin.lat, origin.lng, radius, hasUserLocation]
   );
 
   return (
@@ -67,60 +79,91 @@ export function MapPreview({
       transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
       className="relative h-[460px] w-full overflow-hidden rounded-3xl border border-ink-200/70 bg-emerald-50/40 shadow-lift lg:h-[520px]"
     >
-      {/* Base map — MapLibre + OpenFreeMap (free, no token) */}
+      {/* Base map — MapLibre + OpenFreeMap (free, no token). When the user
+          location is unknown we centre on India and skip the "user pin". */}
       <InteractiveMap
         center={origin}
-        zoom={11}
-        origin={origin}
+        zoom={mapZoom}
+        origin={hasUserLocation ? origin : undefined}
         view={view}
         interactive
         markers={liveMarkers}
         className="absolute inset-0"
       />
 
-      {/* Floating "Your Location" card */}
-      <div className="absolute left-4 top-4 z-10 w-64 rounded-2xl border border-white/70 bg-white/90 p-3.5 shadow-lift backdrop-blur-xl">
-        <div className="flex items-start gap-2.5">
-          <span className="mt-0.5 grid h-7 w-7 place-items-center rounded-full bg-emerald-500 text-white shadow-glow">
-            <MapPin className="h-3.5 w-3.5" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-[11.5px] font-semibold uppercase tracking-wider text-ink-500">
-              Your Location
-            </p>
-            <p className="truncate text-[14px] font-semibold text-ink-900">
-              {city}, {state}
-            </p>
+      {/* Floating top-left card — Your Location OR Set Location CTA. */}
+      {hasUserLocation ? (
+        <div className="absolute left-4 top-4 z-10 w-64 rounded-2xl border border-white/70 bg-white/90 p-3.5 shadow-lift backdrop-blur-xl">
+          <div className="flex items-start gap-2.5">
+            <span className="mt-0.5 grid h-7 w-7 place-items-center rounded-full bg-emerald-500 text-white shadow-glow">
+              <MapPin className="h-3.5 w-3.5" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[11.5px] font-semibold uppercase tracking-wider text-ink-500">
+                Your Location
+              </p>
+              <p className="truncate text-[14px] font-semibold text-ink-900">
+                {city}{city && state ? ", " : ""}{state}
+              </p>
+            </div>
           </div>
-        </div>
 
-        <div className="mt-3.5">
-          <div className="flex items-center justify-between">
-            <span className="text-[11.5px] font-semibold uppercase tracking-wider text-ink-500">
-              Search Radius
-            </span>
-            <span className="text-[12px] font-semibold text-brand-700">
-              {formatRadius(radius)}
-            </span>
+          <div className="mt-3.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11.5px] font-semibold uppercase tracking-wider text-ink-500">
+                Search Radius
+              </span>
+              <span className="text-[12px] font-semibold text-brand-700">
+                {formatRadius(radius)}
+              </span>
+            </div>
+            <input
+              type="range"
+              min={RADIUS_MIN_KM}
+              max={RADIUS_MAX_KM}
+              step={RADIUS_STEP_KM}
+              value={radius}
+              onChange={(e) => setRadius(parseInt(e.target.value))}
+              className="mt-2 w-full accent-emerald-500"
+            />
+            <div className="flex justify-between text-[10.5px] font-medium text-ink-400">
+              <span>{RADIUS_MIN_KM} km</span>
+              <span>{RADIUS_MAX_KM} km</span>
+            </div>
+            <p className="mt-1 text-[10.5px] text-ink-500">
+              Showing {liveMarkers.length} {liveMarkers.length === 1 ? "listing" : "listings"} within {radius} km
+            </p>
           </div>
-          <input
-            type="range"
-            min={RADIUS_MIN_KM}
-            max={RADIUS_MAX_KM}
-            step={RADIUS_STEP_KM}
-            value={radius}
-            onChange={(e) => setRadius(parseInt(e.target.value))}
-            className="mt-2 w-full accent-emerald-500"
-          />
-          <div className="flex justify-between text-[10.5px] font-medium text-ink-400">
-            <span>{RADIUS_MIN_KM} km</span>
-            <span>{RADIUS_MAX_KM} km</span>
-          </div>
-          <p className="mt-1 text-[10.5px] text-ink-500">
-            Showing {liveMarkers.length} {liveMarkers.length === 1 ? "listing" : "listings"} within {radius} km
-          </p>
         </div>
-      </div>
+      ) : (
+        <div className="absolute left-4 top-4 z-10 w-72 rounded-2xl border border-amber-200/70 bg-white/95 p-3.5 shadow-lift backdrop-blur-xl">
+          <div className="flex items-start gap-2.5">
+            <span className="mt-0.5 grid h-7 w-7 place-items-center rounded-full bg-amber-100 text-amber-700">
+              <MapPin className="h-3.5 w-3.5" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[11.5px] font-semibold uppercase tracking-wider text-amber-700">
+                Location not set
+              </p>
+              <p className="text-[13px] font-semibold text-ink-900">
+                Set your location for accurate distances.
+              </p>
+              <p className="mt-0.5 text-[11.5px] text-ink-500">
+                Use the chip in the navbar, or detect now.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            disabled={requesting}
+            onClick={() => resolve()}
+            className="mt-3 inline-flex h-9 w-full items-center justify-center gap-2 rounded-xl bg-brand-500 text-[13px] font-semibold text-white shadow-soft transition hover:bg-brand-600 disabled:opacity-60"
+          >
+            <Crosshair className="h-4 w-4" />
+            {requesting ? "Detecting…" : "Detect via device GPS"}
+          </button>
+        </div>
+      )}
 
       {/* View toggle */}
       <div className="absolute right-4 top-4 z-10 flex rounded-xl border border-white/70 bg-white/85 p-1 shadow-card backdrop-blur-xl">

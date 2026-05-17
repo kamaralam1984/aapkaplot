@@ -43,20 +43,25 @@ export function Hero() {
   const { t } = useT();
   // Single source of truth for "where the user is" — same hook the Navbar uses.
   const { location: device, requesting: isLocating, resolve } = useDeviceLocation();
-  const [origin, setOrigin] = useState(DEFAULT_ORIGIN);
+  // Origin starts null. We do NOT seed it with DEFAULT_ORIGIN (Kolkata) any
+  // more — that's exactly the bug a user in Patna hits when their WiFi/IP
+  // geo lands on a Kolkata POP. The map renders a neutral India view until
+  // the user grants GPS or picks a city manually.
+  const [origin, setOrigin] = useState<{ lat: number; lng: number } | null>(null);
 
-  // Sync origin → device location whenever it resolves (covers first paint,
-  // permission grant, and manual re-detect from the navbar chip).
   useEffect(() => {
     if (device?.lat && device?.lng) {
       setOrigin({ lat: device.lat, lng: device.lng });
+    } else {
+      setOrigin(null);
     }
   }, [device?.lat, device?.lng]);
 
   // Memoize so we don't recompute haversine for every paint when origin
-  // hasn't changed (e.g. unrelated parent re-renders).
+  // hasn't changed (e.g. unrelated parent re-renders). When the user has no
+  // location set, leave nearby empty — the map shows a CTA instead.
   const nearby = useMemo(
-    () => withinRadius(origin, MOCK_PROPERTIES, 200).slice(0, 6),
+    () => (origin ? withinRadius(origin, MOCK_PROPERTIES, 200).slice(0, 6) : []),
     [origin],
   );
 
@@ -139,9 +144,9 @@ export function Hero() {
               city={device?.city || undefined}
               state={device?.state || undefined}
             />
-            {/* Floating property cards — clamped inside the column so they
-                never cause horizontal overflow on any viewport. */}
-            {nearby[0] && (
+            {/* Floating cards only show when we know where the user is —
+                otherwise "X km away" labels would be meaningless. */}
+            {origin && nearby[0] && (
               <FloatingPropertyCard
                 property={nearby[0]}
                 position={{ bottom: "10%", left: "2%" }}
@@ -149,7 +154,7 @@ export function Hero() {
                 className="hidden xl:block"
               />
             )}
-            {nearby[1] && (
+            {origin && nearby[1] && (
               <FloatingPropertyCard
                 property={nearby[1]}
                 position={{ top: "28%", right: "2%" }}
