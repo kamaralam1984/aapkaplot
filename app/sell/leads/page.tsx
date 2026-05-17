@@ -9,7 +9,6 @@ import {
 import { SectionHeader } from "@/components/dashboard/SectionHeader";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
-import { MOCK_LEADS, getPropertyById } from "@/lib/mock-dashboard";
 import { formatRelativeTime, formatInr } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -44,47 +43,13 @@ export default function LeadsPage() {
       try {
         const res = await fetch("/api/seller/leads", { cache: "no-store" });
         const data = await res.json().catch(() => ({}));
-        if (res.ok && Array.isArray(data.leads) && data.leads.length > 0) {
-          setLeads(data.leads);
-          setMode("live");
-          return;
-        }
         if (data.mode === "db_disabled") setMode("db_disabled");
-        else setMode("mock");
-
-        // Mock fallback so the page still demos in dev.
-        setLeads(
-          MOCK_LEADS.map((l) => {
-            const p = getPropertyById(l.propertyId);
-            return {
-              id: l.id,
-              via: l.channel,
-              status: l.status as Status,
-              message: l.message,
-              offerAmountInr: null,
-              offerStatus: null,
-              createdAt: l.createdAt,
-              property: p
-                ? {
-                    id: p.id,
-                    title: p.title,
-                    coverUrl: p.media.cover,
-                    priceInr: p.priceInr,
-                    locality: p.location.locality,
-                    city: p.location.city,
-                  }
-                : null,
-              buyer: {
-                id: l.id,
-                name: l.buyerName,
-                phone: l.buyerPhoneMasked ?? "",
-                email: null,
-              },
-            };
-          })
-        );
+        else setMode("live");
+        // Always trust the API — no mock fallback. Mock leads had hard-coded
+        // ids like "l1" that pointed at /chat/l1 (a 404) when clicked.
+        setLeads(Array.isArray(data.leads) ? data.leads : []);
       } catch {
-        setMode("mock");
+        setMode("live");
         setLeads([]);
       }
     })();
