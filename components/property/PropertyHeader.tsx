@@ -68,7 +68,13 @@ export function PropertyHeader({ property }: PropertyHeaderProps) {
           </span>
         </div>
         <p className="text-[13px] text-ink-500">
-          {formatArea(property.areaSqft)} · ₹{pricePerSqft.toLocaleString("en-IN")}/sqft
+          {property.areaSqft > 0 ? (
+            <>
+              {formatArea(property.areaSqft)} · ₹{pricePerSqft.toLocaleString("en-IN")}/sqft
+            </>
+          ) : (
+            <span className="text-amber-700">Area not set — owner can update it in edit</span>
+          )}
           {priceDropped && (
             <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-semibold text-rose-700">
               <TrendingDown className="h-3 w-3" />

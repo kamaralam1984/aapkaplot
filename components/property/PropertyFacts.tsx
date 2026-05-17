@@ -22,11 +22,15 @@ export function PropertyFacts({ property }: PropertyFactsProps) {
 
   const facts: { label: string; value: string; icon: React.ReactNode }[] = [];
 
-  facts.push({
-    label: "Carpet Area",
-    value: formatArea(property.areaSqft),
-    icon: <Maximize2 className="h-[18px] w-[18px]" />,
-  });
+  // Only surface area when it's actually been set on the listing. A "0 sqft"
+  // tile is worse than no tile when the seller forgot to fill the field.
+  if (property.areaSqft > 0) {
+    facts.push({
+      label: "Carpet Area",
+      value: formatArea(property.areaSqft),
+      icon: <Maximize2 className="h-[18px] w-[18px]" />,
+    });
+  }
 
   if (features.bedrooms != null)
     facts.push({
