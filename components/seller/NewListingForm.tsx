@@ -94,11 +94,20 @@ const EMPTY: ListingDraft = {
   allowsBrokers: false,
 };
 
-export function NewListingForm() {
+export interface NewListingFormProps {
+  /** When set, the form runs in edit mode — initial values pre-fill the
+   *  draft, submit goes to PATCH /api/seller/property/:id, and the CTA
+   *  reads "Save changes" instead of "Submit for review". */
+  propertyId?: string;
+  initial?: Partial<ListingDraft>;
+}
+
+export function NewListingForm({ propertyId, initial }: NewListingFormProps = {}) {
   const router = useRouter();
   const toast = useToast();
+  const editMode = Boolean(propertyId);
   const [step, setStep] = useState<Step>(0);
-  const [draft, setDraft] = useState<ListingDraft>(EMPTY);
+  const [draft, setDraft] = useState<ListingDraft>({ ...EMPTY, ...initial });
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -120,8 +129,12 @@ export function NewListingForm() {
     if (!draft.kind || !draft.priceInr) return;
     setSubmitting(true);
     try {
-      const res = await fetch("/api/property/create", {
-        method: "POST",
+      const endpoint = editMode
+        ? `/api/seller/property/${propertyId}`
+        : "/api/property/create";
+      const method = editMode ? "PATCH" : "POST";
+      const res = await fetch(endpoint, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           intent: draft.intent,
@@ -173,7 +186,13 @@ export function NewListingForm() {
         return;
       }
 
-      toast.show({ kind: "success", title: "Submitted for review", description: "We'll notify you within 24 hours." });
+      toast.show({
+        kind: "success",
+        title: editMode ? "Changes saved" : "Submitted for review",
+        description: editMode
+          ? "Your listing is back in the review queue."
+          : "We'll notify you within 24 hours.",
+      });
       setDone(true);
       setTimeout(() => router.push("/sell/listings"), 1200);
     } catch {
@@ -189,9 +208,13 @@ export function NewListingForm() {
         <div className="grid h-14 w-14 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
           <CheckCircle2 className="h-7 w-7" />
         </div>
-        <h2 className="mt-4 text-display-md font-display text-ink-900">Listing submitted!</h2>
+        <h2 className="mt-4 text-display-md font-display text-ink-900">
+          {editMode ? "Changes saved!" : "Listing submitted!"}
+        </h2>
         <p className="mt-2 max-w-sm text-[14px] text-ink-500">
-          We're reviewing your property. You'll be notified within 24 hours once it goes live.
+          {editMode
+            ? "Your edits are queued for review and will go live once an admin re-approves."
+            : "We're reviewing your property. You'll be notified within 24 hours once it goes live."}
         </p>
       </motion.div>
     );
@@ -277,7 +300,9 @@ export function NewListingForm() {
               disabled={submitting}
               iconRight={submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
             >
-              {submitting ? "Submitting..." : "Submit for review"}
+              {submitting
+                ? (editMode ? "Saving..." : "Submitting...")
+                : (editMode ? "Save changes"  : "Submit for review")}
             </Button>
           )}
         </footer>

@@ -1,25 +1,72 @@
 import Link from "next/link";
-import Image from "next/image";
-import { Plus, Eye, Inbox, Pencil, Rocket, Pause, Trash2 } from "lucide-react";
+import { Plus, Inbox, FileText } from "lucide-react";
 import { SectionHeader } from "@/components/dashboard/SectionHeader";
 import { Button } from "@/components/ui/Button";
-import { MOCK_SELLER_LISTINGS } from "@/lib/mock-dashboard";
-import { formatInr, formatArea } from "@/lib/format";
+import { prisma } from "@/server/db";
+import { getSession } from "@/lib/auth-server";
+import { SellerListingsTable, type SellerListingRow } from "@/components/seller/SellerListingsTable";
 
-const STATUS_STYLE = {
-  active:          "bg-emerald-50 text-emerald-700 border-emerald-200/70",
-  pending_review:  "bg-amber-50 text-amber-700 border-amber-200/70",
-  paused:          "bg-ink-100 text-ink-700 border-ink-200",
-  draft:           "bg-ink-100 text-ink-700 border-ink-200",
-  sold:            "bg-sky-50 text-sky-700 border-sky-200/70",
-  rejected:        "bg-rose-50 text-rose-700 border-rose-200/70",
-} as const;
+export const dynamic = "force-dynamic";
 
-export default function ListingsPage() {
+export default async function ListingsPage() {
+  const session = await getSession();
+  if (process.env.USE_DB !== "1" || !session) {
+    return (
+      <div className="space-y-6">
+        <SectionHeader
+          eyebrow="0 listings"
+          title="Your listings"
+          subtitle={session ? "Database is off — listings unavailable." : "Sign in to view your listings."}
+          actions={
+            <Link href="/sell/new">
+              <Button variant="primary" size="md" iconLeft={<Plus className="h-4 w-4" />}>
+                New listing
+              </Button>
+            </Link>
+          }
+        />
+      </div>
+    );
+  }
+
+  const rows = await prisma.property.findMany({
+    where: { ownerId: session.uid },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true, title: true, coverUrl: true,
+      kind: true, intent: true, status: true,
+      priceInr: true, areaSqft: true,
+      locality: true, city: true,
+      verified: true, createdAt: true,
+    },
+  });
+
+  const leadCounts = rows.length
+    ? await prisma.lead.groupBy({
+        by: ["propertyId"],
+        where: { propertyId: { in: rows.map((r) => r.id) } },
+        _count: { _all: true },
+      })
+    : [];
+  const leadMap = new Map(leadCounts.map((l) => [l.propertyId, l._count._all]));
+
+  const listings: SellerListingRow[] = rows.map((r) => ({
+    id: r.id,
+    title: r.title,
+    coverUrl: r.coverUrl,
+    status: r.status,
+    priceInr: r.priceInr,
+    areaSqft: r.areaSqft,
+    locality: r.locality,
+    city: r.city,
+    leadsCount: leadMap.get(r.id) ?? 0,
+    createdAt: r.createdAt.toISOString(),
+  }));
+
   return (
     <div className="space-y-6">
       <SectionHeader
-        eyebrow={`${MOCK_SELLER_LISTINGS.length} listings`}
+        eyebrow={`${listings.length} listing${listings.length === 1 ? "" : "s"}`}
         title="Your listings"
         subtitle="Edit, pause, boost or remove your properties anytime."
         actions={
@@ -31,80 +78,31 @@ export default function ListingsPage() {
         }
       />
 
-      <div className="surface-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[820px] text-left">
-            <thead className="bg-ink-50/50 text-[11.5px] font-semibold uppercase tracking-wider text-ink-500">
-              <tr>
-                <th className="px-5 py-3">Property</th>
-                <th className="px-3 py-3">Price</th>
-                <th className="px-3 py-3">Views</th>
-                <th className="px-3 py-3">Leads</th>
-                <th className="px-3 py-3">Status</th>
-                <th className="px-5 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-ink-200/70">
-              {MOCK_SELLER_LISTINGS.map((p) => (
-                <tr key={p.id} className="text-[13.5px] hover:bg-ink-50/50">
-                  <td className="px-5 py-3">
-                    <Link href={`/property/${p.id}`} className="flex items-center gap-3">
-                      <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-ink-100">
-                        <Image src={p.media.cover} alt={p.title} fill sizes="64px" className="object-cover" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="truncate font-bold text-ink-900">{p.title}</p>
-                        <p className="truncate text-[12px] text-ink-500">
-                          {p.location.locality} · {formatArea(p.areaSqft)}
-                        </p>
-                      </div>
-                    </Link>
-                  </td>
-                  <td className="px-3 py-3 font-semibold text-emerald-600">{formatInr(p.priceInr)}</td>
-                  <td className="px-3 py-3"><span className="inline-flex items-center gap-1 text-ink-700"><Eye className="h-3.5 w-3.5 text-ink-400" />{p.views.toLocaleString("en-IN")}</span></td>
-                  <td className="px-3 py-3"><span className="inline-flex items-center gap-1 text-ink-700"><Inbox className="h-3.5 w-3.5 text-ink-400" />{p.leadsCount}</span></td>
-                  <td className="px-3 py-3">
-                    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${STATUS_STYLE[p.status]}`}>
-                      {p.status.replace("_", " ")}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3">
-                    <div className="flex justify-end gap-1">
-                      <IconBtn label="Edit"><Pencil className="h-3.5 w-3.5" /></IconBtn>
-                      <IconBtn label="Boost"><Rocket className="h-3.5 w-3.5" /></IconBtn>
-                      <IconBtn label="Pause"><Pause className="h-3.5 w-3.5" /></IconBtn>
-                      <IconBtn label="Delete" tone="rose"><Trash2 className="h-3.5 w-3.5" /></IconBtn>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {listings.length === 0 ? (
+        <div className="surface-card grid place-items-center gap-3 px-6 py-16 text-center">
+          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-50 text-brand-600">
+            <FileText className="h-6 w-6" />
+          </span>
+          <p className="text-[15px] font-bold text-ink-900">No listings yet</p>
+          <p className="max-w-sm text-[13px] text-ink-500">
+            Post your first property to start receiving leads. Takes about 3 minutes.
+          </p>
+          <Link href="/sell/new" className="mt-2">
+            <Button variant="primary" size="md" iconLeft={<Plus className="h-4 w-4" />}>
+              Post your first listing
+            </Button>
+          </Link>
         </div>
+      ) : (
+        <SellerListingsTable rows={listings} />
+      )}
+
+      <div className="surface-card flex items-center gap-3 px-5 py-3 text-[12.5px] text-ink-500">
+        <Inbox className="h-4 w-4 text-ink-400" />
+        <span>
+          Leads are updated in real-time. Click <strong>Leads</strong> in the sidebar to chat with buyers.
+        </span>
       </div>
     </div>
-  );
-}
-
-function IconBtn({
-  children, label, tone = "ink",
-}: {
-  children: React.ReactNode;
-  label: string;
-  tone?: "ink" | "rose";
-}) {
-  const cls =
-    tone === "rose"
-      ? "text-rose-600 hover:bg-rose-50"
-      : "text-ink-700 hover:bg-ink-100";
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      className={`grid h-8 w-8 place-items-center rounded-lg transition ${cls}`}
-    >
-      {children}
-    </button>
   );
 }
