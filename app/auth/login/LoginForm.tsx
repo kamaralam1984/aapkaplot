@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { Mail, ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
@@ -131,10 +130,8 @@ export default function LoginForm() {
       </div>
 
       <p className="mt-8 text-center text-[13px] text-ink-500">
-        New to AapKaPlot?{" "}
-        <Link href="/auth/login" className="font-semibold text-brand-600 hover:underline">
-          Create an account
-        </Link>
+        New to AapKaPlot? Just enter your email above —
+        we&apos;ll create your account when you sign in for the first time.
       </p>
     </motion.div>
   );

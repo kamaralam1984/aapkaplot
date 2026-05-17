@@ -68,11 +68,22 @@ else
   log ".env.local already present — leaving it alone."
 fi
 
+# Symlink .env → .env.local so Prisma CLI (which only reads .env) picks up
+# DATABASE_URL during `prisma generate` / `prisma db push`. Next.js itself
+# reads .env.local natively, so this only affects the CLI.
+ln -sf "$APP_DIR/.env.local" "$APP_DIR/.env"
+
 # ── Install + build ─────────────────────────────────────────────────────
 log "Installing npm deps (skipping heavy optional SDKs)…"
 # Always use `npm install` to tolerate lockfile drift introduced by Cloudflare
 # Pages dev deps (which target Node 22). `npm ci` is too strict for our flow.
 npm install --omit=optional --no-audit --no-fund --loglevel=error
+
+# Defensive: regenerate Prisma client in case the postinstall hook is missing
+# on an older checkout. Cheap (~5s) and prevents `prisma.<model> does not exist`
+# build failures after schema changes.
+log "Regenerating Prisma client…"
+npx prisma generate >/dev/null
 
 log "Building Next.js (production)…"
 npm run build
