@@ -161,6 +161,13 @@ model Property {
   trustScore   Int      @default(0)
   amenities    String[]
   aiBadges     String[]
+  /// Frontage road widths in feet. Critical for Indian plot listings —
+  /// affects pricing, Vastu, and vehicle access. All four sides optional;
+  /// 0 / null means "no road on this side".
+  roadEastFt   Int?
+  roadWestFt   Int?
+  roadNorthFt  Int?
+  roadSouthFt  Int?
 
   featuredUntil DateTime?
   boostedUntil  DateTime?

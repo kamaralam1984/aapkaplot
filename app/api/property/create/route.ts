@@ -31,6 +31,10 @@ const Body = z.object({
   brokerCommissionPct: z.number().min(0.5).max(5).optional(),
   lat: z.number().min(-90).max(90).optional(),
   lng: z.number().min(-180).max(180).optional(),
+  roadEastFt:  z.number().int().min(0).max(500).optional(),
+  roadWestFt:  z.number().int().min(0).max(500).optional(),
+  roadNorthFt: z.number().int().min(0).max(500).optional(),
+  roadSouthFt: z.number().int().min(0).max(500).optional(),
   /** Optional plot/compound polygon as a GeoJSON ring of [lng, lat] pairs.
    *  Validated as ≥ 3 vertices; the closing vertex is added server-side. */
   boundary: z
@@ -103,6 +107,10 @@ export async function POST(req: Request) {
         brokerCommissionPct: d.brokerCommissionPct ?? null,
         ownerId: session.uid,
         boundary: d.boundary ? (d.boundary as unknown as object) : undefined,
+        roadEastFt:  d.roadEastFt  ?? null,
+        roadWestFt:  d.roadWestFt  ?? null,
+        roadNorthFt: d.roadNorthFt ?? null,
+        roadSouthFt: d.roadSouthFt ?? null,
       },
       select: { id: true, status: true, createdAt: true },
     });

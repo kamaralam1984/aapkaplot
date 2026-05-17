@@ -67,6 +67,12 @@ interface ListingDraft {
   lng: number | null;
   /** Optional polygon outlining the plot/compound — array of [lng, lat]. */
   boundary: [number, number][];
+  /** Road frontage widths in feet. Indian plot buyers ask for these
+   *  separately for each cardinal side (Vastu + vehicle access). */
+  roadEastFt?: number;
+  roadWestFt?: number;
+  roadNorthFt?: number;
+  roadSouthFt?: number;
   amenities: AmenityId[];
   photos: { name: string; url: string }[];
   youtubeUrl?: string;
@@ -152,6 +158,10 @@ export function NewListingForm({ propertyId, initial }: NewListingFormProps = {}
           lat: draft.lat ?? undefined,
           lng: draft.lng ?? undefined,
           boundary: draft.boundary.length >= 3 ? draft.boundary : undefined,
+          roadEastFt:  draft.roadEastFt,
+          roadWestFt:  draft.roadWestFt,
+          roadNorthFt: draft.roadNorthFt,
+          roadSouthFt: draft.roadSouthFt,
           amenities: draft.amenities,
           photos: draft.photos.map((p) => ({ name: p.name, url: p.url })),
           youtubeUrl: draft.youtubeUrl || undefined,
@@ -430,6 +440,38 @@ function PropertyStep({ draft, update }: { draft: ListingDraft; update: <K exten
             className="input min-h-[110px] resize-none pr-3"
           />
           <AiDescribeButton draft={draft} onResult={(text) => update("description", text)} />
+        </div>
+      </Field>
+
+      <Field
+        label="Road frontage (in feet)"
+        helper="Width of the road on each side of the plot. Leave blank if no road on that side."
+      >
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {([
+            { key: "roadNorthFt", label: "North 🧭⬆", placeholder: "e.g. 20" },
+            { key: "roadEastFt",  label: "East ⬅",   placeholder: "e.g. 12" },
+            { key: "roadSouthFt", label: "South ⬇",  placeholder: "e.g. 0" },
+            { key: "roadWestFt",  label: "West ➡",   placeholder: "e.g. 8" },
+          ] as const).map((side) => (
+            <label key={side.key} className="block">
+              <span className="block text-[11px] font-semibold uppercase tracking-wider text-ink-500">
+                {side.label}
+              </span>
+              <input
+                type="number"
+                min={0}
+                max={500}
+                value={draft[side.key] ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  update(side.key, v === "" ? undefined : Math.max(0, Math.min(500, Number(v) || 0)));
+                }}
+                placeholder={side.placeholder}
+                className="input mt-1"
+              />
+            </label>
+          ))}
         </div>
       </Field>
 

@@ -39,6 +39,7 @@ export default async function EditListingPage({ params }: { params: Promise<{ id
       coverUrl: true, gallery: true, youtubeUrl: true, tourUrl: true,
       amenities: true, priceInr: true,
       allowsBrokers: true, brokerCommissionPct: true,
+      roadEastFt: true, roadWestFt: true, roadNorthFt: true, roadSouthFt: true,
     },
   });
   if (!p) notFound();
@@ -81,6 +82,10 @@ export default async function EditListingPage({ params }: { params: Promise<{ id
     negotiable: true,
     allowsBrokers: p.allowsBrokers ?? false,
     brokerCommissionPct: p.brokerCommissionPct ?? undefined,
+    roadEastFt:  p.roadEastFt  ?? undefined,
+    roadWestFt:  p.roadWestFt  ?? undefined,
+    roadNorthFt: p.roadNorthFt ?? undefined,
+    roadSouthFt: p.roadSouthFt ?? undefined,
   };
 
   return (

@@ -38,6 +38,7 @@ export default async function AdminEditPropertyPage({ params }: { params: Promis
       coverUrl: true, gallery: true, youtubeUrl: true, tourUrl: true,
       amenities: true, priceInr: true,
       allowsBrokers: true, brokerCommissionPct: true,
+      roadEastFt: true, roadWestFt: true, roadNorthFt: true, roadSouthFt: true,
       owner: { select: { name: true, email: true } },
     },
   });
@@ -73,6 +74,10 @@ export default async function AdminEditPropertyPage({ params }: { params: Promis
     negotiable: true,
     allowsBrokers: p.allowsBrokers ?? false,
     brokerCommissionPct: p.brokerCommissionPct ?? undefined,
+    roadEastFt:  p.roadEastFt  ?? undefined,
+    roadWestFt:  p.roadWestFt  ?? undefined,
+    roadNorthFt: p.roadNorthFt ?? undefined,
+    roadSouthFt: p.roadSouthFt ?? undefined,
   };
 
   return (

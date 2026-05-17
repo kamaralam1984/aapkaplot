@@ -31,7 +31,18 @@ export async function POST(req: Request) {
     );
   }
 
-  // 1) Cloudflare Workers AI (free, 100k req/day) — preferred when configured.
+  // 1) OpenAI GPT — primary. Seller explicitly asked for OpenAI; falls
+  //    through to the free Cloudflare path on any failure (timeout, quota).
+  if (process.env.OPENAI_API_KEY) {
+    try {
+      const text = await generateViaOpenAI(parsed.data);
+      return NextResponse.json({ ok: true, source: "openai", description: text });
+    } catch (err) {
+      console.warn("[ai/describe] openai failed, falling back:", (err as Error).message);
+    }
+  }
+
+  // 2) Cloudflare Workers AI — free 100k req/day fallback.
   if (process.env.CF_ACCOUNT_ID && process.env.CF_API_TOKEN) {
     try {
       const text = await generateViaWorkersAi(parsed.data);
@@ -41,7 +52,7 @@ export async function POST(req: Request) {
     }
   }
 
-  // 2) Anthropic Claude — paid, opt-in only when ANTHROPIC_API_KEY is set.
+  // 3) Anthropic Claude — secondary paid fallback (prompt-cached).
   if (process.env.ANTHROPIC_API_KEY) {
     try {
       const text = await generateViaClaude(parsed.data);
@@ -51,9 +62,48 @@ export async function POST(req: Request) {
     }
   }
 
-  // 3) Deterministic fallback — uses the same 8-template bank as listings.
+  // 4) Deterministic template — last resort so the seller never sees an error.
   const text = templateDescription(parsed.data);
   return NextResponse.json({ ok: true, source: "template", description: text });
+}
+
+/* ---------- OpenAI integration ---------- */
+
+async function generateViaOpenAI(input: Input): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY!;
+  const model = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 320,
+      temperature: 0.7,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a luxury Indian real-estate copywriter. Write listing descriptions " +
+            "that are vivid, factual, ~80 words, no emojis, no marketing fluff, " +
+            "second-person voice. Mention 1-2 nearby conveniences when relevant. " +
+            "Avoid clichés like 'dream home' or 'paradise'. Indian English.",
+        },
+        { role: "user", content: buildPrompt(input) },
+      ],
+    }),
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`openai_status_${res.status}: ${body.slice(0, 120)}`);
+  }
+  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+  const text = data.choices?.[0]?.message?.content?.trim();
+  if (!text) throw new Error("openai_empty_response");
+  return text;
 }
 
 async function generateViaWorkersAi(input: Input): Promise<string> {

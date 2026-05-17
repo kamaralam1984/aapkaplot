@@ -82,6 +82,10 @@ const Body = z.object({
     .min(3)
     .max(64)
     .optional(),
+  roadEastFt:  z.number().int().min(0).max(500).nullable().optional(),
+  roadWestFt:  z.number().int().min(0).max(500).nullable().optional(),
+  roadNorthFt: z.number().int().min(0).max(500).nullable().optional(),
+  roadSouthFt: z.number().int().min(0).max(500).nullable().optional(),
 });
 
 function toEnumKind(k: NonNullable<z.infer<typeof Body>["kind"]>) {
@@ -139,6 +143,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (d.lat !== undefined) updateData.lat = d.lat;
   if (d.lng !== undefined) updateData.lng = d.lng;
   if (d.boundary !== undefined) updateData.boundary = d.boundary as unknown as object;
+  if (d.roadEastFt  !== undefined) updateData.roadEastFt  = d.roadEastFt;
+  if (d.roadWestFt  !== undefined) updateData.roadWestFt  = d.roadWestFt;
+  if (d.roadNorthFt !== undefined) updateData.roadNorthFt = d.roadNorthFt;
+  if (d.roadSouthFt !== undefined) updateData.roadSouthFt = d.roadSouthFt;
 
   // Edits put the listing back into review unless caller is a verified
   // straight-edit (only photos/desc) — keep it strict for now.
