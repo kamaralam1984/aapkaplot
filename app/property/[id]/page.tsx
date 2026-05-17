@@ -29,6 +29,7 @@ import {
   getSimilarProperties,
 } from "@/lib/property-detail";
 import { loadPropertyDetailFromDb } from "@/lib/property-detail-db";
+import { getSession } from "@/lib/auth-server";
 import type { PropertyDetail } from "@/lib/types";
 
 /**
@@ -85,8 +86,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function PropertyDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const property = await resolveProperty(id);
+  const [property, session] = await Promise.all([resolveProperty(id), getSession()]);
   if (!property) notFound();
+
+  // Sellers should not see "Make an offer" / phone-reveal on their own
+  // listing — that's the source of the cannot_offer_own surprise.
+  const isOwner = Boolean(session && session.uid === property.owner.id);
 
   const similar = getSimilarProperties(property.id, 8);
   const similarWithDistance = withinRadius(property.location.coords, similar, 200);
@@ -209,8 +214,24 @@ export default async function PropertyDetailPage({ params }: PageProps) {
 
             {/* Sidebar */}
             <aside className="space-y-3 lg:sticky lg:top-20 lg:self-start">
-              <PropertyOwnerCard owner={property.owner} propertyTitle={property.title} propertyId={property.id} />
-              {property.intent !== "rent" && (
+              {isOwner ? (
+                <div className="rounded-2xl border border-violet-200 bg-violet-50/70 p-4">
+                  <p className="text-[13px] font-bold text-violet-900">This is your listing</p>
+                  <p className="mt-1 text-[12px] text-violet-700">
+                    Buyers will see your phone / WhatsApp here. Edit details from{" "}
+                    <a href={`/sell/edit/${property.id}`} className="font-semibold underline">
+                      /sell/edit
+                    </a>{" "}
+                    or update your contact info in{" "}
+                    <a href="/me/settings" className="font-semibold underline">
+                      Settings
+                    </a>.
+                  </p>
+                </div>
+              ) : (
+                <PropertyOwnerCard owner={property.owner} propertyTitle={property.title} propertyId={property.id} />
+              )}
+              {!isOwner && property.intent !== "rent" && (
                 <MakeOfferModal
                   propertyId={property.id}
                   listingPriceInr={property.priceInr}
