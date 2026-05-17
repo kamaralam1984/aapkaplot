@@ -37,6 +37,26 @@ model AdminAuditLog {
   @@index([targetType, targetId])
 }
 
+model PerformanceScan {
+  id              String   @id @default(cuid())
+  url             String
+  strategy        String   // "mobile" | "desktop"
+  performance     Int?     // 0–100
+  accessibility   Int?
+  bestPractices   Int?
+  seo             Int?
+  lcpMs           Int?     // Largest Contentful Paint
+  clsX1000        Int?     // CLS × 1000 (Prisma int)
+  inpMs           Int?     // Interaction to Next Paint
+  ttfbMs          Int?
+  fcpMs           Int?
+  raw             Json?
+  createdAt       DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([strategy, createdAt])
+}
+
 enum PropertyKind {
   PLOT
   FLAT

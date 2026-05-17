@@ -43,6 +43,8 @@ export default async function AdminLayout({
         { href: "/admin/events",       label: "Events",        icon: "activity" },
         { href: "/admin/heatmap",      label: "Heatmap",       icon: "activity" },
         { href: "/admin/ads",          label: "Ads",           icon: "ads" },
+        { href: "/admin/performance",  label: "Performance",   icon: "activity" },
+        { href: "/admin/system-log",   label: "System log",    icon: "activity" },
         { href: "/admin/audit",        label: "Audit log",     icon: "activity" },
       ]}
     >
