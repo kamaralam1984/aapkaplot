@@ -1,12 +1,24 @@
+import nextDynamic from "next/dynamic";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Hero } from "@/components/home/Hero";
 import { NearbyRail } from "@/components/home/NearbyRail";
 import { TopPicksStrip } from "@/components/home/TopPicksStrip";
-import { CategoryGrid } from "@/components/home/CategoryGrid";
-import { AIRecommendations } from "@/components/home/AIRecommendations";
-import { HomepageAdSlot } from "@/components/home/HomepageAdSlot";
-import { YouTubeRail } from "@/components/home/YouTubeRail";
+// Below-the-fold sections — load on demand so the initial JS bundle stays
+// small. These never appear above the viewport on first paint, so deferring
+// them removes them from the LCP / INP critical path.
+const CategoryGrid = nextDynamic(() =>
+  import("@/components/home/CategoryGrid").then((m) => ({ default: m.CategoryGrid }))
+);
+const AIRecommendations = nextDynamic(() =>
+  import("@/components/home/AIRecommendations").then((m) => ({ default: m.AIRecommendations }))
+);
+const HomepageAdSlot = nextDynamic(() =>
+  import("@/components/home/HomepageAdSlot").then((m) => ({ default: m.HomepageAdSlot }))
+);
+const YouTubeRail = nextDynamic(() =>
+  import("@/components/home/YouTubeRail").then((m) => ({ default: m.YouTubeRail }))
+);
 import { MOCK_PROPERTIES, DEFAULT_ORIGIN } from "@/lib/mock-data";
 import { withinRadius } from "@/lib/haversine";
 import { findNearby, listProperties } from "@/lib/data/properties";

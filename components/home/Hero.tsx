@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { Sparkles, Home, BadgeCheck, Satellite, Crosshair, ArrowRight } from "lucide-react";
 import { Container } from "@/components/layout/Container";
 import { Button } from "@/components/ui/Button";
@@ -51,35 +50,20 @@ export function Hero() {
         <div className="grid items-center gap-8 lg:grid-cols-[1.1fr_1fr] xl:gap-12 2xl:gap-16">
           {/* Left: copy + search */}
           <div>
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-emerald-50 px-3 py-1 text-[12px] font-semibold text-emerald-700"
-            >
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-emerald-50 px-3 py-1 text-[12px] font-semibold text-emerald-700">
               <Sparkles className="h-3.5 w-3.5" />
               {t("hero.eyebrow")}
-            </motion.div>
+            </div>
 
-            <motion.h1
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.05 }}
-              className="mt-5 text-display-xl text-balance font-display text-ink-900"
-            >
+            <h1 className="mt-5 text-display-xl text-balance font-display text-ink-900">
               {t("hero.h1.1")}
               <br className="hidden sm:block" /> {t("hero.h1.2")}{" "}
               <span className="text-gradient-brand">{t("hero.h1.3")}</span>
-            </motion.h1>
+            </h1>
 
-            <motion.p
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="mt-4 max-w-xl text-[15.5px] leading-relaxed text-ink-600"
-            >
+            <p className="mt-4 max-w-xl text-[15.5px] leading-relaxed text-ink-600">
               {t("hero.sub")}
-            </motion.p>
+            </p>
 
             {/* Search */}
             <div className="mt-7">
@@ -105,12 +89,9 @@ export function Hero() {
 
             {/* Stats / trust row */}
             <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {HERO_STATS.map((s, i) => (
-                <motion.div
+              {HERO_STATS.map((s) => (
+                <div
                   key={s.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.15 + i * 0.06 }}
                   className="flex items-center gap-3 rounded-2xl border border-ink-200/70 bg-white p-3 shadow-soft"
                 >
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-600">
@@ -122,7 +103,7 @@ export function Hero() {
                     </p>
                     <p className="truncate text-[11.5px] text-ink-500">{s.label}</p>
                   </div>
-                </motion.div>
+                </div>
               ))}
             </div>
           </div>
