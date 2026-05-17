@@ -87,25 +87,37 @@ export function LocationChip({ className }: { className?: string }) {
       {open && (
         <div className="absolute right-0 z-50 mt-2 w-[320px] rounded-2xl border border-ink-200 bg-white p-3 shadow-lift">
           {/* Current value */}
-          <div className="flex items-start gap-2 rounded-xl bg-ink-50/60 px-3 py-2">
-            <MapPin className={cn("mt-0.5 h-4 w-4 shrink-0", approximate ? "text-amber-500" : "text-brand-500")} />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[13.5px] font-semibold text-ink-900">
-                {location?.city || "Unknown"}
-                {location?.state ? <span className="text-ink-500">, {location.state}</span> : null}
-              </p>
-              <p className="text-[11.5px] text-ink-500">
-                Source: {sourceLabel}
-                {location?.accuracyM ? ` · ±${(location.accuracyM / 1000).toFixed(1)} km` : ""}
-              </p>
-              {approximate && (
-                <p className="mt-1 inline-flex items-start gap-1 text-[11px] text-amber-700">
-                  <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
-                  Distances may be off — re-detect or pick your city below.
+          {location ? (
+            <div className="flex items-start gap-2 rounded-xl bg-ink-50/60 px-3 py-2">
+              <MapPin className={cn("mt-0.5 h-4 w-4 shrink-0", approximate ? "text-amber-500" : "text-brand-500")} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[13.5px] font-semibold text-ink-900">
+                  {location.city || "Unknown"}
+                  {location.state ? <span className="text-ink-500">, {location.state}</span> : null}
                 </p>
-              )}
+                <p className="text-[11.5px] text-ink-500">
+                  Source: {sourceLabel}
+                  {location.accuracyM ? ` · ±${(location.accuracyM / 1000).toFixed(1)} km` : ""}
+                </p>
+                {approximate && (
+                  <p className="mt-1 inline-flex items-start gap-1 text-[11px] text-amber-700">
+                    <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
+                    Distances may be off — re-detect or pick your city below.
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-start gap-2 rounded-xl border border-dashed border-ink-200 bg-ink-50/40 px-3 py-2">
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-ink-400" />
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-semibold text-ink-900">No location set</p>
+                <p className="text-[11.5px] text-ink-500">
+                  Detect via GPS or pick your city below for accurate distances.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Re-detect */}
           <button

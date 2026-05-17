@@ -15,7 +15,10 @@ export interface DeviceLocation {
   resolvedAt: number;
 }
 
-const STORAGE_KEY = "akp.device-location.v1";
+// v2 — drops any v1 cache that may have stored a low-accuracy WPS fix
+// (e.g. 455 km from Kolkata). Existing localStorage entries silently expire
+// and users get a fresh prompt to set their city.
+const STORAGE_KEY = "akp.device-location.v2";
 
 // Different freshness windows per source — IP-based misdetections (common on
 // shared WiFi where the upstream NAT exits in another city) should expire
@@ -32,6 +35,12 @@ const TTL_BY_SOURCE: Record<DeviceLocation["source"], number> = {
  *  or IP fallback). Genuine GPS fixes on mobile clock in well under 100 m;
  *  laptops without GPS hardware typically return ≥ 5 km. */
 const GPS_GOOD_ACCURACY_M = 10_000;
+
+/** Anything coarser than 50 km is useless for nearby-search distances and
+ *  almost always reflects WPS/IP guessing. Reject outright so the UI prompts
+ *  the user to set their city manually instead of silently centering the
+ *  map on the wrong metro. */
+const GPS_REJECT_ACCURACY_M = 50_000;
 
 function readCache(): DeviceLocation | null {
   if (typeof window === "undefined") return null;
@@ -149,6 +158,20 @@ export function useDeviceLocation() {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         const accuracy = pos.coords.accuracy;
+
+        // Hard-reject useless fixes (e.g. 455 km accuracy from WPS guessing).
+        // Wipe any stale cached value too so the chip stops showing the
+        // wrong metro. User will be prompted to pick their city manually.
+        if (accuracy > GPS_REJECT_ACCURACY_M) {
+          clearCache();
+          setLocation(null);
+          setError(
+            `Couldn't pin your exact location (±${(accuracy / 1000).toFixed(0)} km — too coarse). Please pick your city below.`,
+          );
+          setRequesting(false);
+          return null;
+        }
+
         const { city, state } = await reverseClient(lat, lng);
         const loc: DeviceLocation = {
           lat, lng, city, state,
@@ -164,35 +187,17 @@ export function useDeviceLocation() {
         const e = err as GeolocationPositionError;
         if (e?.code === 1) setError("Location permission denied. Pick your city manually for accurate distances.");
         else if (e?.code === 3) setError("Couldn't get a fix in time. Pick your city manually.");
-        else setError("Couldn't read your location.");
-        // fall through to IP lookup (always approximate)
-      }
-    }
-
-    // 2. Server IP lookup — explicitly marked approximate so the UI nudges
-    //    the user to set it manually.
-    try {
-      const res = await fetch("/api/geo/where-am-i", { cache: "no-store" });
-      const data = await res.json();
-      if (typeof data?.lat === "number" && typeof data?.lng === "number") {
-        const loc: DeviceLocation = {
-          lat: data.lat,
-          lng: data.lng,
-          city: data.city ?? "",
-          state: data.state ?? "",
-          accuracyM: null,
-          source: "ip",
-          approximate: true,
-          resolvedAt: Date.now(),
-        };
-        set(loc);
+        else setError("Couldn't read your location. Please pick your city manually.");
         setRequesting(false);
-        return loc;
+        return null;
       }
-    } catch {
-      // ignore
     }
 
+    // No browser geolocation API (rare). Tell the user; don't silently
+    // fall back to IP — IP geo on Indian ISPs commonly returns the wrong
+    // metro (the upstream NAT POP), which is exactly the problem we're
+    // solving here.
+    setError("Geolocation isn't available in this browser. Please pick your city manually.");
     setRequesting(false);
     return null;
   }, [set]);
