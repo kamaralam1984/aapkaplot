@@ -29,37 +29,40 @@ export async function POST(req: Request) {
   const strategies =
     parsed.data.strategy === "both" ? (["mobile", "desktop"] as const) : [parsed.data.strategy];
 
-  const results: unknown[] = [];
-  for (const strategy of strategies) {
-    try {
-      const s = await fetchPageSpeed(target, strategy);
-      const row = await prisma.performanceScan.create({
-        data: {
-          url: s.url,
-          strategy: s.strategy,
-          performance: s.performance ?? undefined,
-          accessibility: s.accessibility ?? undefined,
-          bestPractices: s.bestPractices ?? undefined,
-          seo: s.seo ?? undefined,
-          lcpMs: s.lcpMs ?? undefined,
-          clsX1000: s.clsX1000 ?? undefined,
-          inpMs: s.inpMs ?? undefined,
-          ttfbMs: s.ttfbMs ?? undefined,
-          fcpMs: s.fcpMs ?? undefined,
-          raw: undefined, // skip storing the 1–2 MB Lighthouse payload
-        },
-        select: {
-          id: true, url: true, strategy: true, performance: true,
-          accessibility: true, bestPractices: true, seo: true,
-          lcpMs: true, clsX1000: true, inpMs: true, ttfbMs: true, fcpMs: true,
-          createdAt: true,
-        },
-      });
-      results.push(row);
-    } catch (err) {
-      results.push({ strategy, error: (err as Error).message });
-    }
-  }
+  // Run mobile + desktop scans in parallel. PageSpeed Insights queues each
+  // request independently on Google's end (no shared rate-limited resource),
+  // so fanning out roughly halves total wait time on a "both" run.
+  const results = await Promise.all(
+    strategies.map(async (strategy) => {
+      try {
+        const s = await fetchPageSpeed(target, strategy);
+        return await prisma.performanceScan.create({
+          data: {
+            url: s.url,
+            strategy: s.strategy,
+            performance: s.performance ?? undefined,
+            accessibility: s.accessibility ?? undefined,
+            bestPractices: s.bestPractices ?? undefined,
+            seo: s.seo ?? undefined,
+            lcpMs: s.lcpMs ?? undefined,
+            clsX1000: s.clsX1000 ?? undefined,
+            inpMs: s.inpMs ?? undefined,
+            ttfbMs: s.ttfbMs ?? undefined,
+            fcpMs: s.fcpMs ?? undefined,
+            raw: undefined, // skip storing the 1–2 MB Lighthouse payload
+          },
+          select: {
+            id: true, url: true, strategy: true, performance: true,
+            accessibility: true, bestPractices: true, seo: true,
+            lcpMs: true, clsX1000: true, inpMs: true, ttfbMs: true, fcpMs: true,
+            createdAt: true,
+          },
+        });
+      } catch (err) {
+        return { strategy, error: (err as Error).message };
+      }
+    }),
+  );
 
   return NextResponse.json({ ok: true, results });
 }

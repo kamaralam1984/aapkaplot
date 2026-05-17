@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, Heart, MapPin, MessageCircle, Menu, X, User, Loader2 } from "lucide-react";
 import { useDeviceLocation } from "@/lib/use-device-location";
-import { motion, AnimatePresence } from "framer-motion";
 import { Logo } from "./Logo";
 import { Container } from "./Container";
 import { LanguageToggle } from "./LanguageToggle";
@@ -115,39 +114,32 @@ export function Navbar() {
         </div>
       </Container>
 
-      {/* Mobile menu */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            className="md:hidden border-t border-ink-200/70 bg-white/95 backdrop-blur-xl"
-          >
-            <Container className="flex flex-col gap-1 py-3">
-              {NAV_LINKS.map((l) => (
-                <Link
-                  key={l.href}
-                  href={l.href}
-                  onClick={() => setMobileOpen(false)}
-                  className="rounded-lg px-3 py-2.5 text-[15px] font-medium text-ink-800 hover:bg-ink-100"
-                >
-                  {t(l.key)}
-                </Link>
-              ))}
-              <div className="mt-2 flex flex-col gap-2 border-t border-ink-200/70 pt-3">
-                <Link href="/sell/new" onClick={() => setMobileOpen(false)}>
-                  <Button variant="outline" size="md" className="w-full">Post Property</Button>
-                </Link>
-                <Link href="/auth/login" onClick={() => setMobileOpen(false)}>
-                  <Button variant="primary" size="md" className="w-full">Sign In / Register</Button>
-                </Link>
-              </div>
-            </Container>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Mobile menu — CSS transition instead of framer-motion to avoid
+          pulling the motion runtime onto every page just for a fade. */}
+      {mobileOpen && (
+        <div className="akp-fade-in md:hidden border-t border-ink-200/70 bg-white/95 backdrop-blur-xl">
+          <Container className="flex flex-col gap-1 py-3">
+            {NAV_LINKS.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                onClick={() => setMobileOpen(false)}
+                className="rounded-lg px-3 py-2.5 text-[15px] font-medium text-ink-800 hover:bg-ink-100"
+              >
+                {t(l.key)}
+              </Link>
+            ))}
+            <div className="mt-2 flex flex-col gap-2 border-t border-ink-200/70 pt-3">
+              <Link href="/sell/new" onClick={() => setMobileOpen(false)}>
+                <Button variant="outline" size="md" className="w-full">Post Property</Button>
+              </Link>
+              <Link href="/auth/login" onClick={() => setMobileOpen(false)}>
+                <Button variant="primary" size="md" className="w-full">Sign In / Register</Button>
+              </Link>
+            </div>
+          </Container>
+        </div>
+      )}
     </header>
   );
 }

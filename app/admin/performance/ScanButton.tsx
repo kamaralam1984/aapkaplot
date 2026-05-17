@@ -35,7 +35,7 @@ export function ScanButton() {
         disabled={busy}
         className="rounded-lg bg-ink-900 px-4 py-2 text-[13px] font-semibold text-white hover:bg-ink-800 disabled:opacity-50"
       >
-        {busy ? "Scanning… (60–90 s)" : "Run audit"}
+        {busy ? "Scanning… (40–60 s)" : "Run audit"}
       </button>
       {err && <span className="text-[11px] text-rose-700">{err}</span>}
     </div>
