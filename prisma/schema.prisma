@@ -19,6 +19,7 @@ enum UserRole {
   SELLER
   AGENT
   ADMIN
+  SUPER_ADMIN
 }
 
 enum PropertyKind {

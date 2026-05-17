@@ -8,7 +8,7 @@ import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 const COOKIE_NAME = "akp_session";
 const COOKIE_MAX_AGE_SEC = 60 * 60 * 24 * 30; // 30 days
 
-export type SessionRole = "buyer" | "seller" | "agent" | "admin";
+export type SessionRole = "buyer" | "seller" | "agent" | "admin" | "super_admin";
 
 export interface Session {
   uid: string;
@@ -19,6 +19,16 @@ export interface Session {
   name?: string;
   role: SessionRole;
   iat: number;
+}
+
+/** True if the session can access /admin/* (admin or super_admin). */
+export function isAdminRole(role: SessionRole | undefined): boolean {
+  return role === "admin" || role === "super_admin";
+}
+
+/** True only for super admins (reserved for destructive actions). */
+export function isSuperAdminRole(role: SessionRole | undefined): boolean {
+  return role === "super_admin";
 }
 
 function secret() {

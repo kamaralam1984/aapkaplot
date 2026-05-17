@@ -12,7 +12,7 @@ async function requireAdmin() {
   if (!session) return { error: NextResponse.json({ error: "unauthenticated" }, { status: 401 }) };
   // Lookup role from DB — session may not carry it.
   const u = await prisma.user.findUnique({ where: { id: session.uid }, select: { role: true } });
-  if (u?.role !== "ADMIN") {
+  if (u?.role !== "ADMIN" && u?.role !== "SUPER_ADMIN") {
     return { error: NextResponse.json({ error: "forbidden" }, { status: 403 }) };
   }
   return { session };

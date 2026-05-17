@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSession } from "@/lib/auth-server";
+import { requireAdmin } from "@/lib/admin-guard";
 import {
   store,
   decisionKey,
@@ -15,11 +15,9 @@ const Body = z.object({
 });
 
 export async function POST(req: Request) {
-  const session = await getSession();
-  if (!session) {
-    return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
-  }
-  // NOTE: in prod, gate this on session.role === "admin".
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.res;
+  const { session } = guard;
 
   const parsed = Body.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) {
@@ -44,6 +42,9 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.res;
+
   const url = new URL(req.url);
   const scope = url.searchParams.get("scope");
   let list = [...store.adminDecisions.values()];
