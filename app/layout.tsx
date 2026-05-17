@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { ServiceWorkerRegister } from "@/components/layout/ServiceWorkerRegister";
+import { LazyClient } from "@/components/layout/LazyClient";
 import { ToastProvider } from "@/components/ui/Toast";
 import { CompareDock } from "@/components/property/CompareDock";
 import { GoogleAnalytics } from "@/components/seo/GoogleAnalytics";
@@ -106,10 +107,15 @@ export default function RootLayout({
         </Suspense>
         <ToastProvider>
           {children}
-          <CompareDock />
+          {/* CompareDock + CookieConsent + SW are never visible above the
+              fold on first paint — defer their hydration to idle time so
+              they stop competing with LCP / INP. */}
+          <LazyClient>
+            <CompareDock />
+            <CookieConsent />
+            <ServiceWorkerRegister />
+          </LazyClient>
         </ToastProvider>
-        <CookieConsent />
-        <ServiceWorkerRegister />
       </body>
     </html>
   );

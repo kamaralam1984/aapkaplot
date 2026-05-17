@@ -1,18 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Sparkles, Home, BadgeCheck, Satellite, Crosshair, ArrowRight } from "lucide-react";
 import { Container } from "@/components/layout/Container";
 import { Button } from "@/components/ui/Button";
 import { SearchPanel } from "./SearchPanel";
-import { MapPreview } from "./MapPreview";
-import { FloatingPropertyCard } from "./FloatingPropertyCard";
 import { GpsConsentBanner } from "./GpsConsentBanner";
 import { HERO_STATS, MOCK_PROPERTIES, DEFAULT_ORIGIN } from "@/lib/mock-data";
 import { withinRadius } from "@/lib/haversine";
 import { useT } from "@/lib/i18n";
 import { useDeviceLocation } from "@/lib/use-device-location";
+
+// MapPreview pulls Mapbox tiles + InteractiveMap + framer-motion. ~80 kB
+// gzipped and runs heavy paint work — defer until the rest of the hero is
+// up so it doesn't compete for the main thread during LCP.
+const MapPreview = dynamic(
+  () => import("./MapPreview").then((m) => ({ default: m.MapPreview })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="aspect-[4/3] w-full animate-pulse rounded-2xl bg-ink-100/70" />
+    ),
+  },
+);
+
+// Decorative cards rendered only at xl+ — exclude from the mobile JS bundle.
+const FloatingPropertyCard = dynamic(
+  () => import("./FloatingPropertyCard").then((m) => ({ default: m.FloatingPropertyCard })),
+  { ssr: false },
+);
 
 const ICONS: Record<string, React.ReactNode> = {
   home: <Home className="h-[18px] w-[18px]" />,
@@ -35,7 +53,12 @@ export function Hero() {
     }
   }, [device?.lat, device?.lng]);
 
-  const nearby = withinRadius(origin, MOCK_PROPERTIES, 200).slice(0, 6);
+  // Memoize so we don't recompute haversine for every paint when origin
+  // hasn't changed (e.g. unrelated parent re-renders).
+  const nearby = useMemo(
+    () => withinRadius(origin, MOCK_PROPERTIES, 200).slice(0, 6),
+    [origin],
+  );
 
   const handleLocate = () => resolve();
 
