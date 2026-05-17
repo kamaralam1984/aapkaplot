@@ -67,16 +67,10 @@ export function Turnstile({ onToken, onExpire }: TurnstileProps) {
     };
   }, [siteKey, onToken, onExpire]);
 
-  // Turnstile not configured → silently skip. The OTP send route still runs
+  // Turnstile not configured → render nothing. The OTP send route still runs
   // with a server-side bypass when TURNSTILE_SECRET is absent (see verify.ts).
-  if (!siteKey) {
-    return (
-      <p className="inline-flex items-center gap-1 rounded-full bg-ink-100 px-2.5 py-1 text-[11px] font-medium text-ink-500">
-        <ShieldAlert className="h-3 w-3" />
-        Turnstile bot-check is disabled (set NEXT_PUBLIC_TURNSTILE_SITE_KEY to enable)
-      </p>
-    );
-  }
+  // Showing a developer hint to end users in production looked unprofessional.
+  if (!siteKey) return null;
 
   return (
     <div className="space-y-1">
