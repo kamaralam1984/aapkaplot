@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getSession } from "@/lib/auth-server";
 import { prisma } from "@/server/db";
@@ -155,6 +156,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       } catch (err) {
         console.error("[seller/property/PATCH] syncGeom_failed", updated.id, err);
       }
+    }
+    // Bust the ISR cache for the public property page so the edit is visible
+    // immediately instead of waiting up to 60 s for the next revalidation.
+    try {
+      revalidatePath(`/property/${updated.id}`);
+      revalidatePath("/sell/listings");
+    } catch {
+      /* revalidatePath throws when called outside the request context — ignore */
     }
     return NextResponse.json({ ok: true, property: updated });
   } catch (err) {

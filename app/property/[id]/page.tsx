@@ -47,6 +47,11 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
+// Re-render at most once per minute so DB-backed listings reflect edits
+// quickly — the previous "static-by-default" behaviour cached an old
+// areaSqft=0 render and never picked up subsequent updates.
+export const revalidate = 60;
+
 export async function generateStaticParams() {
   return getAllPropertyIds().map((id) => ({ id }));
 }
