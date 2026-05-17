@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Heart, MessageCircle, Menu, X, User } from "lucide-react";
+import { Heart, MessageCircle, Menu, X } from "lucide-react";
 import { Logo } from "./Logo";
 import { Container } from "./Container";
 import { LanguageToggle } from "./LanguageToggle";
 import { LocationChip } from "./LocationChip";
 import { MoreMenu } from "./MoreMenu";
+import { UserMenu } from "./UserMenu";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
@@ -78,13 +79,9 @@ export function Navbar() {
           <IconButton aria-label="Messages" className="hidden md:grid">
             <MessageCircle className="h-[18px] w-[18px]" />
           </IconButton>
-          <Link
-            href="/auth/login"
-            className="hidden h-10 items-center gap-2 rounded-xl border border-ink-200 bg-white px-3.5 text-sm font-medium text-ink-800 shadow-soft transition hover:border-brand-500/40 md:inline-flex"
-          >
-            <User className="h-4 w-4 text-ink-500" />
-            {t("nav.signin")}
-          </Link>
+          {/* Session-aware: shows avatar + dropdown when signed in, or a
+              Sign In link when anonymous. Reads /api/auth/me on mount. */}
+          <UserMenu />
           <button
             type="button"
             aria-label="Open menu"
