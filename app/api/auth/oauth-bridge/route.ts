@@ -35,8 +35,24 @@ function prismaRoleToSession(role: string): SessionRole {
   }
 }
 
+/**
+ * Resolve the public origin even when running behind a reverse proxy. PM2
+ * + Cloudflare Tunnel terminate TLS at the edge, so inside Next.js
+ * `req.url` looks like `http://localhost:3001/...`. We prefer the explicit
+ * NEXTAUTH_URL / NEXT_PUBLIC_SITE_URL env vars, then the x-forwarded
+ * headers Cloudflare sets, falling back to the raw URL only in dev.
+ */
+function siteOrigin(req: NextRequest): string {
+  const env = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL;
+  if (env) return env.replace(/\/$/, "");
+  const proto = req.headers.get("x-forwarded-proto") || "https";
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
+  if (host) return `${proto}://${host}`;
+  return new URL(req.url).origin;
+}
+
 function loginRedirect(req: NextRequest, error: string) {
-  const url = new URL("/auth/login", req.url);
+  const url = new URL("/auth/login", siteOrigin(req));
   url.searchParams.set("error", error);
   return NextResponse.redirect(url);
 }
@@ -101,6 +117,8 @@ export async function GET(req: NextRequest) {
     maxAge: sessionCookie.maxAge,
   });
 
-  const next = req.nextUrl.searchParams.get("next") || "/me";
-  return NextResponse.redirect(new URL(next, req.url));
+  // Honor a same-origin `next=` query param (don't allow open redirects).
+  const rawNext = req.nextUrl.searchParams.get("next") || "/me";
+  const next = rawNext.startsWith("/") ? rawNext : "/me";
+  return NextResponse.redirect(new URL(next, siteOrigin(req)));
 }
