@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { getSession } from "@/lib/auth-server";
+import { isAdminRole } from "@/lib/session";
+import { prisma } from "@/server/db";
 import { MOCK_MODERATION } from "@/lib/mock-dashboard";
 
 export default async function AdminLayout({
@@ -10,7 +12,19 @@ export default async function AdminLayout({
 }) {
   const session = await getSession();
   if (!session) redirect("/auth/login?next=/admin");
-  // Role gating now lives in /middleware.ts (edge) + per-API requireAdmin().
+
+  // Strict role check. When the DB is on, trust the DB; otherwise fall back
+  // to the role baked into the signed session cookie.
+  if (process.env.USE_DB === "1") {
+    const u = await prisma.user
+      .findUnique({ where: { id: session.uid }, select: { role: true } })
+      .catch(() => null);
+    if (u?.role !== "ADMIN" && u?.role !== "SUPER_ADMIN") {
+      redirect("/?error=forbidden");
+    }
+  } else if (!isAdminRole(session.role)) {
+    redirect("/?error=forbidden");
+  }
 
   const openModeration = MOCK_MODERATION.filter((m) => m.status === "open").length;
 
