@@ -54,6 +54,7 @@ model User {
   email        String?   @unique
   name         String?
   role         UserRole  @default(BUYER)
+  suspended    Boolean   @default(false)
   passwordHash String?
   phoneVerified DateTime?
   emailVerified DateTime?
