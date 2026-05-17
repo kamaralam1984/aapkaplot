@@ -7,6 +7,8 @@ import { GoogleAnalytics } from "@/components/seo/GoogleAnalytics";
 import { GoogleAdSense } from "@/components/seo/GoogleAdSense";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { CookieConsent } from "@/components/legal/CookieConsent";
+import { RouteProgress } from "@/components/ui/RouteProgress";
+import { Suspense } from "react";
 import "./globals.css";
 
 const inter = Inter({
@@ -99,6 +101,9 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-surface text-ink-900">
         <GoogleAnalytics />
+        <Suspense fallback={null}>
+          <RouteProgress />
+        </Suspense>
         <ToastProvider>
           {children}
           <CompareDock />
