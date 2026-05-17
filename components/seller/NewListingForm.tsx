@@ -14,6 +14,7 @@ import type { AmenityId, PropertyKind } from "@/lib/types";
 import { AMENITIES_CATALOG } from "@/lib/property-detail";
 import { useToast } from "@/components/ui/Toast";
 import type { LocationValue } from "./LocationPicker";
+import { AreaInput } from "./AreaInput";
 
 // MapLibre touches `window` on import, so the picker has to be lazy-loaded.
 // Keeping it out of the initial bundle also drops ~70 kB off the
@@ -370,24 +371,51 @@ function PropertyStep({ draft, update }: { draft: ListingDraft; update: <K exten
         />
       </Field>
 
-      {(draft.kind === "flat" || draft.kind === "house" || draft.kind === "villa") && (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Field label="BHK">
-            <input type="number" min={1} max={10} value={draft.bhk ?? ""} onChange={(e) => update("bhk", Number(e.target.value) || undefined)} className="input" placeholder="2" />
-          </Field>
-          <Field label="Carpet area (sqft)">
-            <input type="number" min={50} value={draft.areaSqft ?? ""} onChange={(e) => update("areaSqft", Number(e.target.value) || undefined)} className="input" placeholder="850" />
-          </Field>
-          <Field label="Furnishing">
-            <select value={draft.furnishing ?? ""} onChange={(e) => update("furnishing", (e.target.value || undefined) as ListingDraft["furnishing"])} className="input">
-              <option value="">Select…</option>
-              <option>Unfurnished</option>
-              <option>Semi-furnished</option>
-              <option>Furnished</option>
-            </select>
-          </Field>
-        </div>
-      )}
+      {/* Area is required for every property type. Plot/agriculture sellers
+          typically think in katha/bigha/acre rather than sqft, so the unit
+          dropdown lets them enter whichever they like — we store canonical
+          square feet under the hood. */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <Field label="Area">
+          <AreaInput
+            valueSqft={draft.areaSqft}
+            onChange={(sqft) => update("areaSqft", sqft)}
+            defaultUnit={
+              draft.kind === "plot" || draft.kind === "agriculture" ? "katha" : "sqft"
+            }
+            placeholder={draft.kind === "agriculture" ? "e.g. 1.5" : "e.g. 1200"}
+          />
+        </Field>
+        {(draft.kind === "flat" || draft.kind === "house" || draft.kind === "villa") && (
+          <>
+            <Field label="BHK">
+              <input
+                type="number"
+                min={1}
+                max={10}
+                value={draft.bhk ?? ""}
+                onChange={(e) => update("bhk", Number(e.target.value) || undefined)}
+                className="input"
+                placeholder="2"
+              />
+            </Field>
+            <Field label="Furnishing">
+              <select
+                value={draft.furnishing ?? ""}
+                onChange={(e) =>
+                  update("furnishing", (e.target.value || undefined) as ListingDraft["furnishing"])
+                }
+                className="input"
+              >
+                <option value="">Select…</option>
+                <option>Unfurnished</option>
+                <option>Semi-furnished</option>
+                <option>Furnished</option>
+              </select>
+            </Field>
+          </>
+        )}
+      </div>
 
       <Field
         label="Description (optional)"
