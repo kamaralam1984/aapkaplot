@@ -82,28 +82,26 @@ export default async function AdminOverview() {
         <StatCard
           label="Total users"
           value={totalUsers.toLocaleString("en-IN")}
-          delta={{ value: `+${weeklySignups} / wk`, direction: weeklySignups > 0 ? "up" : "flat" }}
+          delta={{ value: `+${weeklySignups} / wk`, direction: "up" }}
           icon={Users}
           tone="violet"
         />
         <StatCard
           label="Active listings"
           value={activeListings.toLocaleString("en-IN")}
-          delta={{ value: `${pendingReview} pending review`, direction: pendingReview > 0 ? "up" : "flat" }}
+          delta={{ value: `${pendingReview} pending review`, direction: pendingReview > 0 ? "down" : "up" }}
           icon={ListChecks}
           tone="emerald"
         />
         <StatCard
           label="Leads (30d)"
           value={leads30d.toLocaleString("en-IN")}
-          delta={{ value: "rolling", direction: "flat" }}
           icon={Inbox}
           tone="sky"
         />
         <StatCard
           label="Revenue (30d)"
           value={formatInr(revenueInr)}
-          delta={{ value: "razorpay only", direction: "flat" }}
           icon={IndianRupee}
           tone="amber"
         />
