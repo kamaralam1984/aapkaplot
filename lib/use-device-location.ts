@@ -15,10 +15,10 @@ export interface DeviceLocation {
   resolvedAt: number;
 }
 
-// v2 — drops any v1 cache that may have stored a low-accuracy WPS fix
-// (e.g. 455 km from Kolkata). Existing localStorage entries silently expire
-// and users get a fresh prompt to set their city.
-const STORAGE_KEY = "akp.device-location.v2";
+// v3 — invalidates any v2 cache that may still hold an approximate GPS
+// fix written before the hard-reject path landed. Any visitor who saw
+// the wrong-metro bug gets a fresh prompt on first paint after this ships.
+const STORAGE_KEY = "akp.device-location.v3";
 
 // Different freshness windows per source — IP-based misdetections (common on
 // shared WiFi where the upstream NAT exits in another city) should expire
@@ -50,6 +50,20 @@ function readCache(): DeviceLocation | null {
     const parsed = JSON.parse(raw) as DeviceLocation;
     const ttl = TTL_BY_SOURCE[parsed.source] ?? 60 * 60 * 1000;
     if (Date.now() - parsed.resolvedAt > ttl) return null;
+    // Drop cached values that are clearly garbage — anything with an
+    // accuracy radius wider than the reject threshold (e.g. a 455 km WPS
+    // guess from an earlier visit). User will get the "Set location"
+    // prompt instead of a silent wrong metro.
+    if (parsed.accuracyM != null && parsed.accuracyM > GPS_REJECT_ACCURACY_M) {
+      localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
+    // Also drop ip-source entries on read — we never want to silently
+    // surface an IP-based fix; user should explicitly pick a city.
+    if (parsed.source === "ip") {
+      localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
     return parsed;
   } catch {
     return null;
