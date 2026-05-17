@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, Heart, MapPin, MessageCircle, Menu, X, User, Loader2 } from "lucide-react";
-import { useDeviceLocation } from "@/lib/use-device-location";
+import { Heart, MessageCircle, Menu, X, User } from "lucide-react";
 import { Logo } from "./Logo";
 import { Container } from "./Container";
 import { LanguageToggle } from "./LanguageToggle";
+import { LocationChip } from "./LocationChip";
 import { MoreMenu } from "./MoreMenu";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
@@ -20,27 +20,6 @@ const NAV_LINKS = [
   { href: "/search?kind=shop",        key: "nav.commercial" },
   { href: "/search?kind=agriculture", key: "nav.agriculture" },
 ];
-
-function NavbarLocation() {
-  const { location, requesting, resolve } = useDeviceLocation();
-  const label = requesting
-    ? "Detecting…"
-    : location?.city
-    ? location.city
-    : "Set location";
-  return (
-    <button
-      type="button"
-      onClick={() => resolve()}
-      title={location ? `${location.city}, ${location.state} · ${location.source.toUpperCase()}` : "Detect my location"}
-      className="hidden h-10 items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-3.5 text-sm font-medium text-ink-700 shadow-soft transition hover:border-brand-500/40 hover:text-ink-900 md:inline-flex"
-    >
-      {requesting ? <Loader2 className="h-4 w-4 animate-spin text-brand-500" /> : <MapPin className="h-4 w-4 text-brand-500" />}
-      {label}
-      <ChevronDown className="h-4 w-4 text-ink-400" />
-    </button>
-  );
-}
 
 export function Navbar() {
   const [elevated, setElevated] = useState(false);
@@ -66,8 +45,11 @@ export function Navbar() {
       <Container size="wide" className="flex h-16 items-center gap-4 lg:gap-6">
         <Logo />
 
-        {/* Location selector — live from device GPS / IP fallback. */}
-        <NavbarLocation />
+        {/* Location selector — live device GPS with a manual-override popover.
+            Clicking opens a small panel where the user can re-trigger
+            geolocation or search for the right city when WiFi/IP geo has
+            them in the wrong metro. */}
+        <LocationChip />
 
 
         {/* Desktop nav */}
