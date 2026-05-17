@@ -1,14 +1,26 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { MapPin, Plus, Minus, Locate, Satellite, Map as MapIcon, Crosshair } from "lucide-react";
+import { MapPin, Plus, Minus, Locate, Satellite, Map as MapIcon, Crosshair, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatInr } from "@/lib/format";
 import type { Property } from "@/lib/types";
 import { InteractiveMap, type MapMarker } from "@/components/maps/InteractiveMap";
 import { haversineKm } from "@/lib/haversine";
 import { useDeviceLocation } from "@/lib/use-device-location";
+
+/** Minimal shape returned by /api/property/nearby — enough to render markers
+ *  + the radius/distance card. We avoid pulling in the full Property type
+ *  so the API can stay lean. */
+interface NearbyHit {
+  id: string;
+  lat: number;
+  lng: number;
+  priceInr: number;
+  title?: string;
+  distanceKm?: number;
+}
 
 // Search radius slider: 0 km → 20,000 km in 5 km steps (original wide range).
 const RADIUS_MIN_KM = 0;
@@ -46,22 +58,70 @@ export function MapPreview({
 }: MapPreviewProps) {
   const [view, setView] = useState<"map" | "satellite">("map");
   const [radius, setRadius] = useState(20); // km — default 20 km (slider goes 0–20,000)
+  const [hits, setHits] = useState<NearbyHit[] | null>(null);
+  const [loading, setLoading] = useState(false);
   const { requesting, resolve } = useDeviceLocation();
 
   const hasUserLocation = Boolean(center && (city || state));
   const origin = center ?? INDIA_CENTROID;
   const mapZoom = hasUserLocation ? 11 : 4;
 
-  // Only show properties within the chosen radius of the user's origin.
-  // When there's no user location we keep the map empty rather than
-  // labeling random points as "X km from Kolkata".
+  // Debounced fetch from /api/property/nearby — runs whenever the user's
+  // origin or the slider changes. Falls back to the prop-supplied
+  // (MOCK_PROPERTIES) set so the map isn't blank if the API is down or
+  // the user is sitting outside any DB property.
+  useEffect(() => {
+    if (!hasUserLocation) {
+      setHits([]);
+      return;
+    }
+    let cancelled = false;
+    const handle = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const url = new URL("/api/property/nearby", window.location.origin);
+        url.searchParams.set("lat", origin.lat.toString());
+        url.searchParams.set("lng", origin.lng.toString());
+        url.searchParams.set("radiusKm", String(Math.max(0.1, radius)));
+        url.searchParams.set("limit", "30");
+        const r = await fetch(url.toString(), { cache: "no-store" });
+        if (!r.ok) throw new Error(`status_${r.status}`);
+        const data = await r.json();
+        if (!cancelled) {
+          setHits(Array.isArray(data.results) ? data.results : []);
+        }
+      } catch {
+        if (!cancelled) setHits(null); // signal "use fallback"
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }, 250); // debounce slider drags
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [hasUserLocation, origin.lat, origin.lng, radius]);
+
+  // Build the marker set — prefer the live DB results, fall back to mock
+  // properties filtered client-side. When user has no location, render
+  // nothing (empty-state card replaces the live location card below).
   const liveMarkers = useMemo<MapMarker[]>(
     () => {
       if (!hasUserLocation) return [];
+      if (hits && hits.length > 0) {
+        return hits.slice(0, 12).map((h) => ({
+          id: h.id,
+          lat: h.lat,
+          lng: h.lng,
+          label: formatInr(h.priceInr),
+        }));
+      }
+      // Fallback: client-side filter of the mock set so the page still
+      // renders markers if the API is unreachable.
       return properties
         .map((p) => ({ p, dKm: haversineKm(origin, p.location.coords) }))
         .filter(({ dKm }) => dKm <= radius)
-        .slice(0, 8)
+        .slice(0, 12)
         .map(({ p }) => ({
           id: p.id,
           lat: p.location.coords.lat,
@@ -69,8 +129,10 @@ export function MapPreview({
           label: formatInr(p.priceInr),
         }));
     },
-    [properties, origin.lat, origin.lng, radius, hasUserLocation]
+    [hits, properties, origin.lat, origin.lng, radius, hasUserLocation],
   );
+
+  const markerCount = liveMarkers.length;
 
   return (
     <motion.div
@@ -130,8 +192,10 @@ export function MapPreview({
               <span>{RADIUS_MIN_KM} km</span>
               <span>{RADIUS_MAX_KM} km</span>
             </div>
-            <p className="mt-1 text-[10.5px] text-ink-500">
-              Showing {liveMarkers.length} {liveMarkers.length === 1 ? "listing" : "listings"} within {radius} km
+            <p className="mt-1 inline-flex items-center gap-1 text-[10.5px] text-ink-500">
+              {loading && <Loader2 className="h-3 w-3 animate-spin" />}
+              Showing {markerCount} {markerCount === 1 ? "listing" : "listings"} within {radius} km
+              {hits === null && !loading && <span className="text-amber-700">· mock fallback</span>}
             </p>
           </div>
         </div>
