@@ -49,7 +49,12 @@ export interface PropertyPoiBundle {
 
 const ENDPOINT = "https://overpass-api.de/api/interpreter";
 const OSRM_TABLE = "https://router.project-osrm.org/table/v1/driving";
-const RADIUS_M = 8000;     // 8 km — wide enough to catch airports + stations
+// 15 km is the base radius for everyday amenities (banks, restaurants,
+// schools…). Travel / heritage / airports widen this multiplier below.
+// Larger than the previous 8 km because OSM coverage in tier-2 Indian
+// towns is patchy — a local police chowki two streets away may not be
+// mapped, so we have to look further to find the closest tagged node.
+const RADIUS_M = 15000;
 const CACHE_TTL_DAYS = 30;
 // OSRM public server is generous but not unlimited. Cap one batch at 25 so a
 // single property load never blocks the table for other users.
@@ -66,36 +71,85 @@ function buildQuery(lat: number, lng: number): string {
   const r = RADIUS_M;
   // One Overpass query covering every POI we render. Each element returns
   // a name tag where present — we drop unnamed nodes for a clean UI.
+  // Radius rules of thumb (Indian tier-2 coverage):
+  //   • Local services (police, fuel, ATMs, banks): r * 3.5 ≈ 50 km — sparse
+  //     maps often miss the nearest 2–3 km; we'd rather show a real hit.
+  //   • Transit nodes: r * 3 ≈ 45 km — junctions can be cross-district.
+  //   • Airports: r * 7 ≈ 100 km — Bihta, Gaya etc. are still relevant.
+  //   • Everyday shops/food: r = 15 km is enough.
+  //
+  // Each category accepts MULTIPLE OSM tags because mappers don't agree:
+  // a hospital may be amenity=hospital, healthcare=hospital, or just
+  // building=hospital. We aim wide and let classify() bucket them.
+  const big = Math.round(r * 3.5);
+  const huge = Math.round(r * 7);
+  const mid = r * 2;
   return `[out:json][timeout:25];
 (
-  // Transit & airports — important enough to use a bigger radius.
-  node(around:${r * 2},${lat},${lng})[railway=station];
-  node(around:${r * 2},${lat},${lng})[railway=subway_entrance];
-  node(around:${r * 4},${lat},${lng})[aeroway=aerodrome];
-  way (around:${r * 4},${lat},${lng})[aeroway=aerodrome];
-  // Hospitals, schools, colleges.
-  node(around:${r},${lat},${lng})[amenity=hospital];
-  node(around:${r},${lat},${lng})[amenity=clinic];
+  // Railway — station + halt + metro entrance. Ways picked up for big terminals.
+  node(around:${r * 3},${lat},${lng})[railway=station];
+  way (around:${r * 3},${lat},${lng})[railway=station];
+  node(around:${r * 3},${lat},${lng})[railway=halt];
+  node(around:${r * 3},${lat},${lng})[railway=subway_entrance];
+  // Airports — node + way (large airports are tagged as ways).
+  node(around:${huge},${lat},${lng})[aeroway=aerodrome];
+  way (around:${huge},${lat},${lng})[aeroway=aerodrome];
+  // Hospitals / clinics — accept node + way; also healthcare=* and building=hospital.
+  node(around:${mid},${lat},${lng})[amenity=hospital];
+  way (around:${mid},${lat},${lng})[amenity=hospital];
+  node(around:${mid},${lat},${lng})[amenity=clinic];
+  node(around:${mid},${lat},${lng})[healthcare=hospital];
+  way (around:${mid},${lat},${lng})[healthcare=hospital];
+  node(around:${mid},${lat},${lng})[building=hospital];
+  way (around:${mid},${lat},${lng})[building=hospital];
+  // Pharmacies feed into the hospital basket (separate category, see classify).
+  node(around:${r},${lat},${lng})[amenity=pharmacy];
+  // Schools — multiple tag styles.
   node(around:${r},${lat},${lng})[amenity=school];
-  node(around:${r},${lat},${lng})[amenity=college];
-  node(around:${r},${lat},${lng})[amenity=university];
-  // Shopping & food.
-  node(around:${r},${lat},${lng})[shop=mall];
+  way (around:${r},${lat},${lng})[amenity=school];
+  node(around:${r},${lat},${lng})[building=school];
+  way (around:${r},${lat},${lng})[building=school];
+  // Colleges + universities — both go into the colleges bucket.
+  node(around:${mid},${lat},${lng})[amenity=college];
+  way (around:${mid},${lat},${lng})[amenity=college];
+  node(around:${mid},${lat},${lng})[amenity=university];
+  way (around:${mid},${lat},${lng})[amenity=university];
+  node(around:${mid},${lat},${lng})[building=university];
+  way (around:${mid},${lat},${lng})[building=university];
+  // Malls + supermarkets — also accept convenience / grocery / department stores.
+  node(around:${mid},${lat},${lng})[shop=mall];
+  way (around:${mid},${lat},${lng})[shop=mall];
+  node(around:${mid},${lat},${lng})[shop=department_store];
   node(around:${r},${lat},${lng})[shop=supermarket];
+  node(around:${r},${lat},${lng})[shop=convenience];
+  node(around:${r},${lat},${lng})[shop=grocery];
+  // Food — restaurants + cafes + fast food.
   node(around:${r},${lat},${lng})[amenity=restaurant];
   node(around:${r},${lat},${lng})[amenity=cafe];
-  // Services.
-  node(around:${r},${lat},${lng})[amenity=bank];
-  node(around:${r},${lat},${lng})[amenity=atm];
-  node(around:${r},${lat},${lng})[amenity=police];
-  node(around:${r},${lat},${lng})[amenity=fuel];
-  // Leisure, heritage, tourism.
-  node(around:${r * 2},${lat},${lng})[leisure=park];
-  node(around:${r * 2},${lat},${lng})[tourism=museum];
-  node(around:${r * 2},${lat},${lng})[tourism=attraction];
-  node(around:${r * 2},${lat},${lng})[historic];
+  node(around:${r},${lat},${lng})[amenity=fast_food];
+  // Banks — amenity + office=bank (commercial branches).
+  node(around:${big},${lat},${lng})[amenity=bank];
+  node(around:${big},${lat},${lng})[office=bank];
+  // ATMs.
+  node(around:${big},${lat},${lng})[amenity=atm];
+  // Police — many small chowkis tagged inconsistently.
+  node(around:${big},${lat},${lng})[amenity=police];
+  way (around:${big},${lat},${lng})[amenity=police];
+  node(around:${big},${lat},${lng})[building=police];
+  node(around:${big},${lat},${lng})[office=police];
+  // Fuel.
+  node(around:${big},${lat},${lng})[amenity=fuel];
+  // Parks + open green space.
+  node(around:${mid},${lat},${lng})[leisure=park];
+  way (around:${mid},${lat},${lng})[leisure=park];
+  node(around:${mid},${lat},${lng})[leisure=garden];
+  // Tourism + heritage.
+  node(around:${huge},${lat},${lng})[tourism=museum];
+  node(around:${huge},${lat},${lng})[tourism=attraction];
+  node(around:${huge},${lat},${lng})[tourism=viewpoint];
+  node(around:${huge},${lat},${lng})[historic];
 );
-out tags center 400;`;
+out tags center 800;`;
 }
 
 interface OverpassEl {
@@ -108,22 +162,61 @@ interface OverpassEl {
 }
 
 function classify(tags: Record<string, string>): PoiCategory | null {
-  if (tags.railway === "station") return "railway";
+  // Railway: prefer named stations, then halts. Both share a bucket.
+  if (tags.railway === "station" || tags.railway === "halt") return "railway";
   if (tags.railway === "subway_entrance") return "metro";
+  // Airports.
   if (tags.aeroway === "aerodrome") return "airport";
-  if (tags.amenity === "hospital" || tags.amenity === "clinic") return "hospital";
-  if (tags.amenity === "school") return "school";
-  if (tags.amenity === "college" || tags.amenity === "university") return "college";
-  if (tags.shop === "mall") return "mall";
-  if (tags.shop === "supermarket") return "supermarket";
-  if (tags.amenity === "restaurant") return "restaurant";
-  if (tags.amenity === "cafe") return "restaurant";
-  if (tags.amenity === "bank") return "bank";
+  // Hospitals — any of the common tag styles plus pharmacies as a fallback
+  // (rural areas often have pharmacies but no clinic node nearby).
+  if (
+    tags.amenity === "hospital" ||
+    tags.amenity === "clinic" ||
+    tags.amenity === "pharmacy" ||
+    tags.healthcare === "hospital" ||
+    tags.building === "hospital"
+  ) return "hospital";
+  // Schools — amenity OR building tagging both common.
+  if (tags.amenity === "school" || tags.building === "school") return "school";
+  // Colleges + universities → single bucket.
+  if (
+    tags.amenity === "college" ||
+    tags.amenity === "university" ||
+    tags.building === "college" ||
+    tags.building === "university"
+  ) return "college";
+  // Shopping.
+  if (tags.shop === "mall" || tags.shop === "department_store") return "mall";
+  if (
+    tags.shop === "supermarket" ||
+    tags.shop === "convenience" ||
+    tags.shop === "grocery"
+  ) return "supermarket";
+  // Food.
+  if (
+    tags.amenity === "restaurant" ||
+    tags.amenity === "cafe" ||
+    tags.amenity === "fast_food"
+  ) return "restaurant";
+  // Money.
+  if (tags.amenity === "bank" || tags.office === "bank") return "bank";
   if (tags.amenity === "atm") return "atm";
-  if (tags.amenity === "police") return "police";
+  // Police — any of the common tag styles.
+  if (
+    tags.amenity === "police" ||
+    tags.building === "police" ||
+    tags.office === "police"
+  ) return "police";
+  // Fuel.
   if (tags.amenity === "fuel") return "fuel";
-  if (tags.leisure === "park") return "park";
-  if (tags.tourism === "museum" || tags.tourism === "attraction") return "tourism";
+  // Parks + green space.
+  if (tags.leisure === "park" || tags.leisure === "garden") return "park";
+  // Tourism + heritage.
+  if (
+    tags.tourism === "museum" ||
+    tags.tourism === "attraction" ||
+    tags.tourism === "viewpoint"
+  ) return "tourism";
   if (tags.historic) return "historical";
   return null;
 }
@@ -229,11 +322,11 @@ export async function fetchPropertyPois(lat: number, lng: number): Promise<Prope
   }
 
   // 2. Persistent cache via LocalityInsight (reuse table — keyed by
-  //    "property-poi-v2" + bucket so it never collides with locality data).
+  //    "property-poi-v3" + bucket so it never collides with locality data).
   try {
     if (process.env.USE_DB === "1") {
       const row = await prisma.localityInsight.findUnique({
-        where: { cityKey_localityKey: { cityKey: "property-poi-v2", localityKey: key } },
+        where: { cityKey_localityKey: { cityKey: "property-poi-v3", localityKey: key } },
       });
       if (row && Date.now() - row.fetchedAt.getTime() < CACHE_TTL_DAYS * 86400 * 1000) {
         const bundle = row.data as unknown as PropertyPoiBundle;
@@ -326,9 +419,9 @@ export async function fetchPropertyPois(lat: number, lng: number): Promise<Prope
     if (process.env.USE_DB === "1" && items.length > 0) {
       const data = bundle as unknown as Prisma.InputJsonValue;
       await prisma.localityInsight.upsert({
-        where: { cityKey_localityKey: { cityKey: "property-poi-v2", localityKey: key } },
+        where: { cityKey_localityKey: { cityKey: "property-poi-v3", localityKey: key } },
         create: {
-          cityKey: "property-poi-v2",
+          cityKey: "property-poi-v3",
           localityKey: key,
           lat, lng,
           data,
