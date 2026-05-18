@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { User, Mail, Phone, MapPin, MessageCircle, Loader2, Check } from "lucide-react";
+import { User, Mail, Phone, MapPin, MessageCircle, Loader2, Check, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
+
+type RoleSelectable = "buyer" | "seller" | "agent";
 
 interface Initial {
   name: string;
@@ -12,6 +14,16 @@ interface Initial {
   phone: string;
   whatsappPhone: string;
   address: string;
+  role: string; // BUYER | SELLER | AGENT | ADMIN | SUPER_ADMIN
+}
+
+function prismaRoleToSelectable(role: string): RoleSelectable | null {
+  switch (role) {
+    case "BUYER":  return "buyer";
+    case "SELLER": return "seller";
+    case "AGENT":  return "agent";
+    default:       return null; // admin / super_admin can't be downgraded here
+  }
 }
 
 const PHONE_REGEX = /^[6-9][0-9]{9}$/;
@@ -23,6 +35,8 @@ export function SettingsForm({ initial }: { initial: Initial }) {
   const [phone, setPhone] = useState(initial.phone);
   const [whatsappPhone, setWhatsappPhone] = useState(initial.whatsappPhone);
   const [address, setAddress] = useState(initial.address);
+  const initialRole = prismaRoleToSelectable(initial.role);
+  const [role, setRole] = useState<RoleSelectable | null>(initialRole);
   const [saving, setSaving] = useState(false);
 
   const phoneDigits = phone.replace(/\D/g, "").slice(-10);
@@ -34,7 +48,8 @@ export function SettingsForm({ initial }: { initial: Initial }) {
     name.trim() !== initial.name ||
     phoneDigits !== initial.phone ||
     waDigits !== initial.whatsappPhone ||
-    address.trim() !== initial.address;
+    address.trim() !== initial.address ||
+    (role !== null && role !== initialRole);
 
   async function save() {
     if (!phoneValid || !waValid) {
@@ -48,6 +63,7 @@ export function SettingsForm({ initial }: { initial: Initial }) {
       if (phoneDigits !== initial.phone && phoneDigits) body.phone = phoneDigits;
       if (waDigits !== initial.whatsappPhone) body.whatsappPhone = waDigits;
       if (address.trim() !== initial.address) body.address = address.trim();
+      if (role && role !== initialRole) body.role = role;
 
       const res = await fetch("/api/me/profile", {
         method: "PATCH",
@@ -146,6 +162,35 @@ export function SettingsForm({ initial }: { initial: Initial }) {
               className="input resize-none py-2"
             />
           </Field>
+
+          {/* Role switch — hidden for admin/super_admin (initialRole is null
+              for those). Lets a user fix the "signed up but profile shows
+              Buyer" case without going through OTP again. */}
+          {initialRole !== null && (
+            <Field
+              icon={<Briefcase className="h-4 w-4 text-violet-500" />}
+              label="I am a"
+              helper="Switch any time. Seller / Agent unlocks the Post Property flow and seller dashboard."
+              full
+            >
+              <div className="grid grid-cols-3 gap-2">
+                {(["buyer", "seller", "agent"] as const).map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setRole(r)}
+                    className={`h-11 rounded-xl border text-[13px] font-semibold capitalize transition ${
+                      role === r
+                        ? "border-brand-500 bg-brand-50 text-brand-700 shadow-soft"
+                        : "border-ink-200 bg-white text-ink-700 hover:border-brand-300"
+                    }`}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </Field>
+          )}
         </div>
 
         <footer className="mt-5 flex items-center justify-end gap-2">

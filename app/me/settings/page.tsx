@@ -16,19 +16,21 @@ export default async function SettingsPage() {
     phone: string;
     whatsappPhone: string;
     address: string;
+    role: string;
   } = {
     name: session.name ?? "",
     email: session.email ?? "",
     phone: "",
     whatsappPhone: "",
     address: "",
+    role: "BUYER",
   };
 
   if (process.env.USE_DB === "1") {
     const u = await prisma.user
       .findUnique({
         where: { id: session.uid },
-        select: { name: true, email: true, phone: true, whatsappPhone: true, address: true },
+        select: { name: true, email: true, phone: true, whatsappPhone: true, address: true, role: true },
       })
       .catch(() => null);
     if (u) {
@@ -39,6 +41,7 @@ export default async function SettingsPage() {
         phone,
         whatsappPhone: u.whatsappPhone ?? "",
         address: u.address ?? "",
+        role: u.role,
       };
     }
   }

@@ -53,6 +53,10 @@ const Body = z.object({
   phone: z.string().regex(PHONE_REGEX, "Invalid Indian mobile").optional(),
   whatsappPhone: z.string().regex(PHONE_REGEX, "Invalid Indian mobile").optional().or(z.literal("")),
   address: z.string().max(240).optional(),
+  // Self-serve role switch — buyer → seller/agent and back. ADMIN /
+  // SUPER_ADMIN are server-side only; we ignore those values silently
+  // rather than 400 so the form can post a single shared payload.
+  role: z.enum(["buyer", "seller", "agent"]).optional(),
 });
 
 export async function PATCH(req: Request) {
@@ -64,12 +68,22 @@ export async function PATCH(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "invalid_payload", issues: parsed.error.flatten() }, { status: 400 });
   }
-  const { name, phone, whatsappPhone, address } = parsed.data;
+  const { name, phone, whatsappPhone, address, role } = parsed.data;
 
   const updates: Record<string, unknown> = {};
   if (name !== undefined)    updates.name = name.trim();
   if (address !== undefined) updates.address = address.trim();
   if (whatsappPhone !== undefined) updates.whatsappPhone = whatsappPhone === "" ? null : whatsappPhone;
+
+  // Role switch — only honour for non-admin users so we can't accidentally
+  // demote a real admin via a profile PATCH.
+  if (role) {
+    const me = await prisma.user.findUnique({ where: { id: session.uid }, select: { role: true } });
+    if (me && me.role !== "ADMIN" && me.role !== "SUPER_ADMIN") {
+      const target = role === "buyer" ? "BUYER" : role === "seller" ? "SELLER" : "AGENT";
+      if (target !== me.role) updates.role = target;
+    }
+  }
 
   // Phone is unique — verify no one else has it.
   if (phone !== undefined) {
@@ -93,11 +107,21 @@ export async function PATCH(req: Request) {
     });
 
     // Refresh the signed session cookie so navbar / nav greetings reflect
-    // new name/phone without a full re-login.
-    if (name !== undefined || phone !== undefined) {
+    // new name/phone/role without a full re-login.
+    if (name !== undefined || phone !== undefined || updates.role !== undefined) {
+      const roleFromPrisma = (() => {
+        switch (updated.role) {
+          case "ADMIN": return "admin";
+          case "SUPER_ADMIN": return "super_admin";
+          case "SELLER": return "seller";
+          case "AGENT": return "agent";
+          default: return "buyer";
+        }
+      })();
       const token = encodeSession({
         ...session,
         name: updated.name ?? session.name,
+        role: roleFromPrisma,
         // session.phone may not be on the type — guard via spread above.
         iat: Math.floor(Date.now() / 1000),
       });

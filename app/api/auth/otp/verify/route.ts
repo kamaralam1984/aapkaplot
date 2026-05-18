@@ -58,7 +58,23 @@ export async function POST(req: Request) {
     const existing = await prisma.user.findUnique({ where: { email: lower } });
     if (existing) {
       uid = existing.id;
-      const targetPrisma = promote && existing.role !== "SUPER_ADMIN" ? "SUPER_ADMIN" : existing.role;
+      // Role resolution rules, in priority order:
+      //   1. Super-admin allowlist always wins.
+      //   2. If the user is an admin / super_admin / seller / agent already,
+      //      don't downgrade based on a signup form pick.
+      //   3. Otherwise (typically BUYER from a prior Google OAuth bridge or
+      //      first OTP signup), honour whatever the form chose — this is
+      //      what fixes "selected Seller but profile shows Buyer".
+      const requestedPrisma = sessionRoleToPrisma(role);
+      let targetPrisma = existing.role;
+      if (promote && existing.role !== "SUPER_ADMIN") {
+        targetPrisma = "SUPER_ADMIN";
+      } else if (
+        existing.role === "BUYER" &&
+        (requestedPrisma === "SELLER" || requestedPrisma === "AGENT")
+      ) {
+        targetPrisma = requestedPrisma;
+      }
       // Backfill any newly-collected profile fields without overwriting non-null
       // values the user already has on file.
       const updateData: Record<string, unknown> = {};
