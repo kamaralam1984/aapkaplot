@@ -3,6 +3,8 @@ import { z } from "zod";
 import { getSession } from "@/lib/auth-server";
 import { prisma } from "@/server/db";
 import { sendPushToUser } from "@/lib/push";
+import { rateLimit } from "@/lib/rate-limit";
+import { notifyOfferReceived } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 
@@ -19,6 +21,10 @@ const Body = z.object({
  *   to the seller if they're opted in.
  */
 export async function POST(req: Request) {
+  // 10 offers per minute per IP — comfortable for legit buyers, blocks bots.
+  const limited = await rateLimit(req, { key: "offer", limit: 10, windowMs: 60_000 });
+  if (limited) return limited;
+
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   if (process.env.USE_DB !== "1") {
@@ -33,7 +39,11 @@ export async function POST(req: Request) {
 
   const property = await prisma.property.findUnique({
     where: { id: propertyId },
-    select: { id: true, ownerId: true, title: true, priceInr: true },
+    select: {
+      id: true, ownerId: true, title: true, priceInr: true,
+      locality: true, city: true,
+      owner: { select: { email: true, name: true } },
+    },
   });
   if (!property) return NextResponse.json({ error: "property_not_found" }, { status: 404 });
   if (property.ownerId === session.uid) {
@@ -66,13 +76,21 @@ export async function POST(req: Request) {
     select: { id: true },
   });
 
-  // Best-effort push to the seller — no-op if VAPID isn't configured.
+  // Best-effort push + email to seller. Both no-op when not configured.
   sendPushToUser(property.ownerId, {
     title: `New offer on "${property.title}"`,
     body: `Buyer offered ₹${offerAmountInr.toLocaleString("en-IN")} — open to review.`,
     url: `/sell/leads`,
     tag: `offer-${lead.id}`,
   }).catch(() => {});
+  if (property.owner?.email) {
+    notifyOfferReceived(
+      property.owner.email,
+      { id: property.id, title: property.title, city: property.city, locality: property.locality },
+      offerAmountInr,
+      session.name ?? session.email ?? "A buyer",
+    ).catch(() => {});
+  }
 
   return NextResponse.json({ ok: true, leadId: lead.id }, { status: 201 });
 }

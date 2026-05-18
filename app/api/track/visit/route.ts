@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { z } from "zod";
 import { prisma } from "@/server/db";
 import { getSession } from "@/lib/auth-server";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -26,6 +27,10 @@ const Body = z.object({
 });
 
 export async function POST(req: Request) {
+  // Beacon fires on every page nav + heartbeat — cap at 60/min per IP so
+  // a misbehaving client can't melt the Visit table.
+  const limited = await rateLimit(req, { key: "visit", limit: 60, windowMs: 60_000 });
+  if (limited) return limited;
   if (process.env.USE_DB !== "1") return dbOff();
   const parsed = Body.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) {

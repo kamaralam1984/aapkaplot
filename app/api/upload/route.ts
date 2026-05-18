@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { getSession } from "@/lib/auth-server";
+import { rateLimit } from "@/lib/rate-limit";
 
 const MAX_BYTES = 20 * 1024 * 1024;       // 20 MB local storage cap
 const IMGBB_MAX_BYTES = 32 * 1024 * 1024; // ImgBB hard ceiling
@@ -71,6 +72,11 @@ async function uploadLocal(file: File, uid: string): Promise<Uploaded> {
 }
 
 export async function POST(req: Request) {
+  // 20 uploads per minute per IP keeps a single seller's batch upload happy
+  // while shutting down any abuse attempt.
+  const limited = await rateLimit(req, { key: "upload", limit: 20, windowMs: 60_000 });
+  if (limited) return limited;
+
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
