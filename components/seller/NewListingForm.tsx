@@ -15,6 +15,7 @@ import { AMENITIES_CATALOG } from "@/lib/property-detail";
 import { useToast } from "@/components/ui/Toast";
 import type { LocationValue } from "./LocationPicker";
 import { AreaInput } from "./AreaInput";
+import { compressMany } from "@/lib/image-compress";
 
 // MapLibre touches `window` on import, so the picker has to be lazy-loaded.
 // Keeping it out of the initial bundle also drops ~70 kB off the
@@ -560,6 +561,7 @@ function LocationStep({ draft, update }: { draft: ListingDraft; update: <K exten
 function PhotosStep({ draft, update }: { draft: ListingDraft; update: <K extends keyof ListingDraft>(k: K, v: ListingDraft[K]) => void }) {
   const toast = useToast();
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
 
   const onPick = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -570,8 +572,26 @@ function PhotosStep({ draft, update }: { draft: ListingDraft; update: <K extends
         toast.show({ kind: "info", title: "Limit reached", description: "Up to 20 images per listing." });
         return;
       }
+      const picked = Array.from(files).slice(0, slots);
+
+      // Client-side compression: re-encode to WebP, max 1920 px long edge,
+      // 0.85 quality. Cuts a typical 6 MB phone JPEG to ~400 KB without
+      // visible quality loss and normalises HEIC/AVIF/PNG to a format
+      // every browser can render — fixing the "broken image" tiles.
+      const imagesOnly = picked.filter((f) => f.type.startsWith("image/") || /\.(heic|heif)$/i.test(f.name));
+      const videosOnly = picked.filter((f) => f.type.startsWith("video/"));
+      let compressed: File[] = [];
+      if (imagesOnly.length > 0) {
+        setProgress({ done: 0, total: imagesOnly.length });
+        compressed = await compressMany(imagesOnly, {}, (done, total) =>
+          setProgress({ done, total }),
+        );
+        setProgress(null);
+      }
+      const finalFiles = [...compressed, ...videosOnly];
+
       const fd = new FormData();
-      Array.from(files).slice(0, slots).forEach((f) => fd.append("file", f));
+      finalFiles.forEach((f) => fd.append("file", f));
 
       const res = await fetch("/api/upload", { method: "POST", body: fd });
       if (res.status === 401) {
@@ -622,15 +642,24 @@ function PhotosStep({ draft, update }: { draft: ListingDraft; update: <K extends
         <input
           type="file"
           multiple
-          accept="image/*,video/*"
+          accept="image/*,image/heic,image/heif,video/*,.heic,.heif"
           onChange={(e) => onPick(e.target.files)}
           className="sr-only"
         />
         {uploading ? <Loader2 className="h-8 w-8 animate-spin text-brand-500" /> : <Upload className="h-8 w-8 text-brand-500" />}
         <p className="mt-2 text-[14px] font-bold text-ink-900">
-          {uploading ? "Uploading…" : "Click to upload"}
+          {uploading
+            ? progress
+              ? `Compressing ${progress.done} / ${progress.total}…`
+              : "Uploading…"
+            : "Click to upload"}
         </p>
-        <p className="text-[12px] text-ink-500">or drag &amp; drop · JPG, PNG, MP4 · up to 12 files</p>
+        <p className="text-[12px] text-ink-500">
+          or drag &amp; drop · JPG, PNG, HEIC, WebP, AVIF, GIF, MP4 · up to 20 files
+        </p>
+        <p className="mt-1 text-[11px] text-ink-400">
+          Images are auto-compressed in your browser — quality stays sharp, size drops 5–10×.
+        </p>
       </label>
 
       {draft.photos.length > 0 && (

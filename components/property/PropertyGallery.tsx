@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
+import Image, { type ImageProps } from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ChevronLeft,
@@ -21,6 +21,26 @@ import { InteractiveMap } from "@/components/maps/InteractiveMap";
 import { RotateCw } from "lucide-react";
 
 type Tab = "photos" | "video" | "satellite" | "map" | "tour" | "360";
+
+/**
+ * Renders next/image, but if the URL can't decode (HEIC uploaded before
+ * client-side compression shipped, dead CDN link, etc.) it falls back to
+ * a neutral placeholder tile instead of the browser's broken-image icon.
+ */
+function SafeImage(props: ImageProps) {
+  const [errored, setErrored] = useState(false);
+  if (errored) {
+    return (
+      <div className="absolute inset-0 grid place-items-center bg-ink-100 text-ink-400">
+        <div className="flex flex-col items-center gap-1.5">
+          <ImageIcon className="h-7 w-7 opacity-50" />
+          <span className="text-[11px] font-semibold uppercase tracking-wide">Preview unavailable</span>
+        </div>
+      </div>
+    );
+  }
+  return <Image {...props} onError={() => setErrored(true)} />;
+}
 
 interface PropertyGalleryProps {
   gallery: string[];
@@ -68,7 +88,7 @@ export function PropertyGallery({
           onClick={() => setLightboxIndex(0)}
           className="relative col-span-1 row-span-2 overflow-hidden rounded-2xl sm:col-span-2"
         >
-          <Image
+          <SafeImage
             src={gallery[0]}
             alt={title}
             fill
@@ -111,7 +131,7 @@ export function PropertyGallery({
               onClick={() => setLightboxIndex(i + 1)}
               className="relative hidden overflow-hidden rounded-2xl sm:block"
             >
-              <Image
+              <SafeImage
                 src={src}
                 alt={`${title} – ${i + 2}`}
                 fill
@@ -300,7 +320,7 @@ function Lightbox({
             transition={{ duration: 0.2 }}
             className="relative h-full w-full max-w-6xl"
           >
-            <Image
+            <SafeImage
               src={images[index]}
               alt={`${title} – ${index + 1}`}
               fill
