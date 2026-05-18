@@ -60,6 +60,9 @@ export function gradePage(page: ComposedPage): QualityReport {
   const populatedBlocks = page.blocks.filter(
     (b) => b.paragraphs.length > 0 && b.paragraphs.some((p) => p.trim().length > 40),
   ).length;
+  // Composer now emits 9 blocks (intro + marketing + 7 sections). Treat 8/9
+  // as the "complete" bar so older 8-block pages still match expectations.
+  const populatedBlocksTarget = 8;
 
   // ── Scoring ────────────────────────────────────────────────
   let wordScore = Math.min(30, Math.round((page.wordCount / 800) * 30));
@@ -77,8 +80,9 @@ export function gradePage(page: ComposedPage): QualityReport {
     reasons.push(`Highest-frequency token used ${(maxTokenDensity * 100).toFixed(1)}% of body — looks like stuffing.`);
   }
 
-  let structureScore = Math.round((populatedBlocks / 8) * 15);
-  if (populatedBlocks < 6) reasons.push(`Only ${populatedBlocks}/8 content blocks populated.`);
+  let structureScore = Math.round((populatedBlocks / populatedBlocksTarget) * 15);
+  if (structureScore > 15) structureScore = 15;
+  if (populatedBlocks < 6) reasons.push(`Only ${populatedBlocks}/${populatedBlocksTarget} content blocks populated.`);
 
   const score = wordScore + sourceScore + diversityScore + stuffingScore + structureScore;
 

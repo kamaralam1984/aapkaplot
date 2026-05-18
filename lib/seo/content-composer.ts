@@ -21,7 +21,7 @@ import type { GeoEntry, PropertyKindSlug, PropertyIntentSlug } from "./geo-datas
 import type { WikiFacts, PoiBuckets, ListingStats } from "./data-sources";
 
 export interface ComposedBlock {
-  kind: "intro" | "listings" | "price" | "amenities" | "guide" | "connectivity" | "faq" | "closing";
+  kind: "intro" | "marketing" | "listings" | "price" | "amenities" | "guide" | "connectivity" | "faq" | "closing";
   heading: string;
   paragraphs: string[];
   /** Optional structured payload (used by chart/list components in templates). */
@@ -314,6 +314,48 @@ function composeFaq(a: ComposeArgs): ComposedBlock {
   };
 }
 
+function composeMarketing(a: ComposeArgs): ComposedBlock {
+  const { geo, kind, intent, slug } = a;
+  const place = geo.name;
+  const k = KIND_PHRASES[kind];
+  const kPlural = pickByHash(k.plural, slug, "mkt-kp");
+  const isBuy = intent === "buy";
+
+  const openers = [
+    (p: string) => `AapKaPlot was built to make property discovery in ${p} feel like a conversation with a well-informed local, not a sales call.`,
+    (p: string) => `Every ${kPlural.toLowerCase()} listing in ${p} on AapKaPlot is verified by a real person walking the property, not just a phone call to the owner.`,
+    (p: string) => `One of the reasons buyers and renters in ${p} keep coming back to AapKaPlot is that we strip out the noise — no duplicate ads, no broken numbers, no stale prices.`,
+    (p: string) => `AapKaPlot puts the entire ${p} property catalogue in one place — with live satellite views, AI-priced suggestions and verified seller badges built in.`,
+    (p: string) => `If you are serious about a property in ${p}, AapKaPlot is the shortest path from "interested" to "site visit scheduled" — usually within the same day.`,
+  ];
+  const valueLines = [
+    `Live satellite view on every listing means you can audit the surroundings — road width, plot shape, distance to the nearest school or hospital — without leaving home.`,
+    `AI-generated investment scores summarise five years of micro-market trend data in a single number, so you spend more time evaluating fit than crunching spreadsheets.`,
+    `Verified Owner badges flag listings where ID, ownership documents and physical visit all check out — that's most of what scams rely on, eliminated up front.`,
+    `Direct messaging with sellers means no broker tax on the conversation — when you do bring in a broker, it is by choice and you negotiate the fee.`,
+    `Saved searches and WhatsApp alerts mean a brand-new ${kPlural.toLowerCase()} listing in ${place} reaches you within minutes — not after it has been on the market for a week.`,
+  ];
+  const closers = [
+    (p: string) => `Whichever ${kPlural.toLowerCase()} in ${p} you ultimately ${isBuy ? "buy" : "rent"}, doing the homework on this platform first usually adds a couple of confidence points to that final decision.`,
+    (p: string) => `From the first browse to the day you sign in ${p}, AapKaPlot is designed to keep you in control of the timeline — no pushy follow-ups, no surprise charges.`,
+    (p: string) => `Bookmark this page, set up a price-drop alert, and let the listings come to you — a few minutes of setup pays off across the whole ${p} search.`,
+  ];
+
+  const opener  = pickByHash(openers, slug, "mkt-op")(place);
+  const valueA  = pickByHash(valueLines, slug, "mkt-v1");
+  const valueB  = pickByHash(valueLines, slug, "mkt-v2");
+  const closer  = pickByHash(closers, slug, "mkt-cl")(place);
+
+  return {
+    kind: "marketing",
+    heading: `Why AapKaPlot for ${place}`,
+    paragraphs: [
+      `${opener} ${valueA}`,
+      `${valueB} ${closer}`,
+    ],
+  };
+}
+
 function composeClosing(a: ComposeArgs): ComposedBlock {
   const { geo, slug } = a;
   const place = geo.name;
@@ -328,6 +370,7 @@ function composeClosing(a: ComposeArgs): ComposedBlock {
 export function composePage(a: ComposeArgs): ComposedPage {
   const blocks = [
     composeIntro(a),
+    composeMarketing(a),
     composeListings(a),
     composePrice(a),
     composeAmenities(a),

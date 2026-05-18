@@ -107,6 +107,7 @@ export function TopActionBar({ rejectedCount, canDelete }: TopBarProps) {
         )}
       </div>
       <div className="flex flex-wrap items-center justify-end gap-2">
+        <Btn label="Rebuild ALL pages" tone="violet" busy={busy} onClick={() => post("Rebuild ALL pages", "/api/admin/seo/rebuild-all?limit=100", { confirm: "Rebuild up to 100 existing pages through the latest composer (theme, chrome, marketing block). Re-run to cover the next 100." })} />
         <Btn label="Recreate Fresh" tone="teal" busy={busy} onClick={() => post("Recreate Fresh", "/api/admin/seo/recreate-fresh?olderThanDays=90", { confirm: "Delete pages older than 90 days and regenerate the next 100 in their place?" })} />
         <Btn label="Run SEO Rerank" tone="sky" busy={busy} onClick={() => post("Run SEO Rerank", "/api/admin/seo/rerank", { confirm: "Re-grade every page against the latest quality logic? Some pages may flip between Published/Rejected." })} />
         <Btn label="Rebuild Themes" tone="violet" busy={busy} onClick={() => post("Rebuild Themes", "/api/admin/seo/rebuild-themes", { confirm: "Re-assign the template variant for every page using the latest pickTemplate() weighting?" })} />

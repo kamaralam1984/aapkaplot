@@ -9,6 +9,7 @@ import { buildJsonLd } from "@/lib/seo/structured-data";
 import { RenderSeoTemplate } from "@/components/seo/templates";
 import type { TemplateVariant } from "@/lib/seo/template-router";
 import type { ComposedPage } from "@/lib/seo/content-composer";
+import { pickPageTheme } from "@/lib/seo/page-theme";
 
 export const revalidate = 3600; // 1 hour ISR; cron rebuilds the underlying SeoPage
 
@@ -160,6 +161,8 @@ export default async function SeoPage({ params }: RouteParams) {
         parentGeo={parentGeo}
         kind={kind}
         intent={intent}
+        slug={row.slug}
+        theme={pickPageTheme(row.slug)}
         relatedLinks={related.map((r) => ({ label: r.label, href: r.href }))}
         listingsSlot={<ListingsSlot listings={listings} />}
       />
