@@ -24,6 +24,35 @@
     overflow-x: clip;
     max-width: 100vw;
   }
+  /* ── Mobile fit-to-screen safety net ───────────────────────────────
+     Even when source markup is clean, third-party / user-generated content
+     (blog posts, descriptions, copy-pasted URLs, embedded code blocks)
+     can blow past the viewport. These rules keep anything inside the
+     document from ever pushing the page wider than the screen.
+     ───────────────────────────────────────────────────────────────── */
+  img, video, iframe, embed, object, svg {
+    max-width: 100%;
+    height: auto;
+  }
+  /* Long emails / URLs / hashes don't break by default — force them to. */
+  p, li, dd, dt, blockquote, td, th, figcaption, address, h1, h2, h3, h4, h5, h6 {
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+  /* Code/pre wrap on phones, scroll only when content really needs it. */
+  pre, code, kbd, samp {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  pre {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  /* Tables in long-form content fall back to horizontal scroll instead
+     of forcing the body wider. */
+  table {
+    max-width: 100%;
+  }
   html {
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
