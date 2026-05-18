@@ -119,6 +119,46 @@ function VisitCard({ visit }: { visit: ApiVisit }) {
   const locality = fromDb?.locality ?? mock?.location.locality;
   const city = fromDb?.city ?? mock?.location.city;
 
+  const [busy, setBusy] = useState<"reschedule" | "cancel" | null>(null);
+
+  async function callPatch(body: Record<string, unknown>, label: "reschedule" | "cancel") {
+    setBusy(label);
+    try {
+      const r = await fetch("/api/visit-request", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: visit.id, ...body }),
+      });
+      if (!r.ok) throw new Error((await r.json()).error ?? "failed");
+      // Refresh the page — pulls the updated visits list.
+      window.location.reload();
+    } catch (e) {
+      alert(`Couldn't ${label}: ${(e as Error).message}`);
+      setBusy(null);
+    }
+  }
+
+  function onReschedule() {
+    // Minimal MVP picker — prompt for ISO date then slot label.
+    const current = new Date(visit.scheduledFor);
+    const tomorrow = new Date(Date.now() + 86_400_000);
+    const defaultDate = (current.getTime() > Date.now() ? current : tomorrow)
+      .toISOString()
+      .slice(0, 10);
+    const date = prompt("New date (YYYY-MM-DD):", defaultDate);
+    if (!date) return;
+    const time = prompt("Time slot (e.g. 12:00 PM):", visit.slot || "12:00 PM");
+    if (!time) return;
+    // Build an ISO at the chosen day (12:00 IST → 06:30 UTC). Cheap parse.
+    const iso = new Date(`${date}T06:30:00.000Z`).toISOString();
+    callPatch({ action: "reschedule", scheduledFor: iso, slot: time }, "reschedule");
+  }
+
+  function onCancel() {
+    if (!confirm("Cancel this visit? The seller will be notified.")) return;
+    callPatch({ action: "cancel" }, "cancel");
+  }
+
   if (!title) return null;
 
   return (
@@ -157,8 +197,26 @@ function VisitCard({ visit }: { visit: ApiVisit }) {
       </div>
       {visit.status !== "completed" && visit.status !== "cancelled" && (
         <div className="flex gap-2 border-t border-ink-200/70 p-3">
-          <Button variant="outline" size="sm" className="flex-1">Reschedule</Button>
-          <Button variant="ghost" size="sm" className="flex-1 text-rose-600 hover:bg-rose-50">Cancel</Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1"
+            disabled={!!busy}
+            iconLeft={busy === "reschedule" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : undefined}
+            onClick={onReschedule}
+          >
+            {busy === "reschedule" ? "Saving…" : "Reschedule"}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="flex-1 text-rose-600 hover:bg-rose-50"
+            disabled={!!busy}
+            iconLeft={busy === "cancel" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : undefined}
+            onClick={onCancel}
+          >
+            {busy === "cancel" ? "Cancelling…" : "Cancel"}
+          </Button>
         </div>
       )}
     </li>
