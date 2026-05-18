@@ -65,21 +65,54 @@ export default function LeadsPage() {
     }).catch(() => {});
   };
 
-  const decideOffer = async (id: string, offerStatus: "accepted" | "declined" | "countered") => {
-    setLeads((cur) => cur?.map((l) => (l.id === id ? { ...l, offerStatus } : l)) ?? null);
+  const decideOffer = async (id: string, action: "accept" | "decline" | "counter") => {
+    let counterAmountInr: number | undefined;
+    if (action === "counter") {
+      const raw = prompt("Counter amount in ₹ (whole number):");
+      if (!raw) return;
+      const n = Number(raw.replace(/[^\d]/g, ""));
+      if (!Number.isFinite(n) || n < 1000) {
+        toast.show({ kind: "error", title: "Invalid amount", description: "Must be ≥ ₹1,000." });
+        return;
+      }
+      counterAmountInr = n;
+    }
+    const optimisticStatus =
+      action === "accept" ? "accepted" : action === "decline" ? "declined" : "countered";
+    setLeads((cur) =>
+      cur?.map((l) =>
+        l.id === id
+          ? {
+              ...l,
+              offerStatus: optimisticStatus,
+              offerAmountInr: counterAmountInr ?? l.offerAmountInr,
+            }
+          : l,
+      ) ?? null,
+    );
     if (mode !== "live") {
       toast.show({ kind: "info", title: "Recorded locally", description: "Live offers need DB." });
       return;
     }
-    await fetch("/api/seller/leads", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, offerStatus }),
-    }).catch(() => {});
-    toast.show({
-      kind: offerStatus === "accepted" ? "success" : "info",
-      title: `Offer ${offerStatus}`,
-    });
+    try {
+      const r = await fetch("/api/lead/offer/action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leadId: id,
+          action,
+          ...(counterAmountInr ? { counterAmountInr } : {}),
+        }),
+      });
+      if (!r.ok) throw new Error((await r.json()).error ?? "failed");
+      toast.show({
+        kind: action === "accept" ? "success" : "info",
+        title: `Offer ${optimisticStatus}`,
+        description: action === "counter" ? `Buyer notified of new amount.` : undefined,
+      });
+    } catch (e) {
+      toast.show({ kind: "error", title: "Couldn't update offer", description: (e as Error).message });
+    }
   };
 
   if (leads === null) {
@@ -183,22 +216,31 @@ export default function LeadsPage() {
                     </a>
                   )}
                 </div>
-                {l.offerAmountInr != null && l.offerStatus === "pending" && (
+                {l.offerAmountInr != null && (l.offerStatus === "pending" || l.offerStatus === "countered") && (
                   <div className="flex gap-1.5">
                     <Button
                       variant="outline"
                       size="sm"
                       iconLeft={<X className="h-3.5 w-3.5" />}
-                      onClick={() => decideOffer(l.id, "declined")}
+                      onClick={() => decideOffer(l.id, "decline")}
                       className="flex-1 text-rose-700"
                     >
                       Decline
                     </Button>
                     <Button
+                      variant="outline"
+                      size="sm"
+                      iconLeft={<Handshake className="h-3.5 w-3.5" />}
+                      onClick={() => decideOffer(l.id, "counter")}
+                      className="flex-1 text-sky-700"
+                    >
+                      Counter
+                    </Button>
+                    <Button
                       variant="primary"
                       size="sm"
                       iconLeft={<Check className="h-3.5 w-3.5" />}
-                      onClick={() => decideOffer(l.id, "accepted")}
+                      onClick={() => decideOffer(l.id, "accept")}
                       className="flex-1"
                     >
                       Accept
