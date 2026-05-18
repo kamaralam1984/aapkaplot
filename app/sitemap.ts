@@ -1,10 +1,15 @@
 import type { MetadataRoute } from "next";
-import { MOCK_PROPERTIES } from "@/lib/mock-data";
 import { MOCK_PROJECTS } from "@/lib/mock-projects";
+import { prisma } from "@/server/db";
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://aapkaplot.com";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+// Refresh hourly so new listings show up in Google quickly. Without this
+// Next would treat the route as static and freeze it at build time —
+// fatal for an SEO sitemap that needs to reflect the live catalogue.
+export const revalidate = 3600;
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
 
   const staticPages: MetadataRoute.Sitemap = [
@@ -43,12 +48,39 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }))
   );
 
-  const propertyPages = MOCK_PROPERTIES.map<MetadataRoute.Sitemap[number]>((p) => ({
-    url: `${BASE}/property/${p.id}`,
-    lastModified: new Date(p.postedAt),
-    changeFrequency: "weekly",
-    priority: 0.8,
-  }));
+  // Real properties from the DB. Capped at 5 000 so a single sitemap.xml
+  // stays under Google's 50 MB / 50 000 URL ceiling with margin. Falls back
+  // to an empty array when the DB is unreachable or USE_DB is disabled —
+  // the static skeleton still ships.
+  let propertyPages: MetadataRoute.Sitemap = [];
+  let dbLocalityKeys: Set<string> = new Set();
+  if (process.env.USE_DB === "1") {
+    try {
+      const rows = await prisma.property.findMany({
+        where: { status: "ACTIVE" },
+        select: { id: true, city: true, locality: true, coverUrl: true, updatedAt: true },
+        orderBy: { updatedAt: "desc" },
+        take: 5000,
+      });
+      propertyPages = rows.map((p) => ({
+        url: `${BASE}/property/${p.id}`,
+        lastModified: p.updatedAt,
+        changeFrequency: "weekly",
+        priority: 0.8,
+        // Image annotation helps Google Images index the cover photo with
+        // the listing — significant traffic source for property searches.
+        images: p.coverUrl ? [p.coverUrl] : undefined,
+      }));
+      // Derive city/locality long-tail pages from live data, not seeds.
+      for (const p of rows) {
+        const c = p.city.toLowerCase();
+        const l = p.locality.toLowerCase().replace(/\s+/g, "-");
+        if (c && l) dbLocalityKeys.add(`${c}/${l}`);
+      }
+    } catch (err) {
+      console.warn("[sitemap] db_fetch_failed, skipping property URLs", err);
+    }
+  }
 
   // City + city/kind SEO landings
   const cities = ["kolkata", "bengaluru", "mumbai", "pune", "delhi"];
@@ -84,14 +116,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     lastModified: now,
   }));
 
-  // Locality long-tail pages — derived from the active catalogue.
-  const localityKeys = new Set<string>();
-  for (const p of MOCK_PROPERTIES) {
-    const city = p.location.city.toLowerCase();
-    const locality = p.location.locality.toLowerCase().replace(/\s+/g, "-");
-    if (city && locality) localityKeys.add(`${city}/${locality}`);
-  }
-  const localityPages: MetadataRoute.Sitemap = Array.from(localityKeys).map((path) => {
+  // Locality long-tail pages — derived from the live DB catalogue.
+  const localityPages: MetadataRoute.Sitemap = Array.from(dbLocalityKeys).map((path) => {
     // path is "city/locality" — re-segment for the /area/ route.
     const [city, locality] = path.split("/");
     return {

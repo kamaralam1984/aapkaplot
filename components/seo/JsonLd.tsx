@@ -9,17 +9,41 @@ export function JsonLd() {
 
   const organization = {
     "@context": "https://schema.org",
-    "@type": "Organization",
+    "@type": "RealEstateAgent",
     name: "AapKaPlot",
+    alternateName: "Aap Ka Plot",
     url: siteUrl,
     logo: `${siteUrl}/icon-512.png`,
+    image: `${siteUrl}/opengraph-image`,
     description:
-      "India's AI-powered real estate platform. Discover verified plots, flats and houses with live satellite maps.",
-    sameAs: [] as string[],
+      "India's verified real estate platform. Discover plots, flats, houses, commercial spaces and agricultural land with live satellite maps and trust-scored owners.",
+    foundingDate: "2025",
+    areaServed: [
+      { "@type": "Country", name: "India" },
+      { "@type": "City", name: "Patna" },
+      { "@type": "City", name: "Kolkata" },
+      { "@type": "City", name: "Bengaluru" },
+      { "@type": "City", name: "Mumbai" },
+      { "@type": "City", name: "Pune" },
+      { "@type": "City", name: "Delhi" },
+    ],
+    address: {
+      "@type": "PostalAddress",
+      addressCountry: "IN",
+      addressRegion: "Bihar",
+    },
+    sameAs: [
+      "https://www.facebook.com/aapkaplot",
+      "https://twitter.com/aapkaplot",
+      "https://www.instagram.com/aapkaplot",
+      "https://www.linkedin.com/company/aapkaplot",
+      "https://www.youtube.com/@aapkaplot",
+    ],
     contactPoint: {
       "@type": "ContactPoint",
       contactType: "customer support",
       url: `${siteUrl}/contact`,
+      email: "support@aapkaplot.com",
       availableLanguage: ["en", "hi"],
     },
   };
