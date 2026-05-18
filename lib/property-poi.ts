@@ -30,7 +30,10 @@ export interface Poi {
   category: PoiCategory;
   lat: number;
   lng: number;
+  /** Distance in km — road distance from OSRM when available, else straight-line. */
   distanceKm: number;
+  /** "road" = driving distance via OSRM, "straight" = haversine fallback. */
+  distanceType: "road" | "straight";
 }
 
 export interface PropertyPoiBundle {
@@ -45,8 +48,12 @@ export interface PropertyPoiBundle {
 }
 
 const ENDPOINT = "https://overpass-api.de/api/interpreter";
+const OSRM_TABLE = "https://router.project-osrm.org/table/v1/driving";
 const RADIUS_M = 8000;     // 8 km — wide enough to catch airports + stations
 const CACHE_TTL_DAYS = 30;
+// OSRM public server is generous but not unlimited. Cap one batch at 25 so a
+// single property load never blocks the table for other users.
+const OSRM_MAX_DESTINATIONS = 25;
 
 const MEM_CACHE = new Map<string, { at: number; bundle: PropertyPoiBundle }>();
 
@@ -129,23 +136,29 @@ const CATEGORY_ORDER: PoiCategory[] = [
   "park", "tourism", "historical",
 ];
 
+function poiDistanceLabel(p: Poi): string {
+  // Driving distance: real number. Crow-flies: prefix with "≈" so users know
+  // it's a fallback and may understate winding routes.
+  return p.distanceType === "road" ? formatKm(p.distanceKm) : `≈ ${formatKm(p.distanceKm)}`;
+}
+
 function buildHighlights(byCat: Partial<Record<PoiCategory, Poi[]>>): string[] {
   const out: string[] = [];
   const nearest = (cat: PoiCategory) => byCat[cat]?.[0];
   const m = nearest("metro");
-  if (m) out.push(`Metro at ${m.name} — ${formatKm(m.distanceKm)} away`);
+  if (m) out.push(`Metro at ${m.name} — ${poiDistanceLabel(m)} away`);
   const r = nearest("railway");
-  if (r) out.push(`Railway station: ${r.name} (${formatKm(r.distanceKm)})`);
+  if (r) out.push(`Railway station: ${r.name} (${poiDistanceLabel(r)})`);
   const a = nearest("airport");
-  if (a) out.push(`Airport: ${a.name} reachable in ${formatKm(a.distanceKm)}`);
+  if (a) out.push(`Airport: ${a.name} reachable in ${poiDistanceLabel(a)}`);
   const h = nearest("hospital");
-  if (h) out.push(`Hospital ${h.name} — ${formatKm(h.distanceKm)}`);
+  if (h) out.push(`Hospital ${h.name} — ${poiDistanceLabel(h)}`);
   const s = byCat.school?.length ?? 0;
-  if (s) out.push(`${s} school${s === 1 ? "" : "s"} within ${formatKm(byCat.school![s - 1].distanceKm)}`);
+  if (s) out.push(`${s} school${s === 1 ? "" : "s"} within ${poiDistanceLabel(byCat.school![s - 1])}`);
   const mall = nearest("mall");
-  if (mall) out.push(`Shopping at ${mall.name} (${formatKm(mall.distanceKm)})`);
+  if (mall) out.push(`Shopping at ${mall.name} (${poiDistanceLabel(mall)})`);
   const hist = nearest("historical");
-  if (hist) out.push(`Heritage spot: ${hist.name} — ${formatKm(hist.distanceKm)}`);
+  if (hist) out.push(`Heritage spot: ${hist.name} — ${poiDistanceLabel(hist)}`);
   const tour = nearest("tourism");
   if (tour) out.push(`Tourist attraction nearby: ${tour.name}`);
   return out.slice(0, 5);
@@ -154,6 +167,52 @@ function buildHighlights(byCat: Partial<Record<PoiCategory, Poi[]>>): string[] {
 function formatKm(km: number): string {
   if (km < 1) return `${Math.round(km * 1000)} m`;
   return `${km.toFixed(1)} km`;
+}
+
+/**
+ * Replace haversine distance with real driving distance for the closest
+ * `OSRM_MAX_DESTINATIONS` POIs. Single OSRM Table call → matrix of road
+ * metres. Anything past the cap keeps the straight-line value (marked as
+ * such so the UI can flag it).
+ *
+ * Free public OSRM has no API key but is rate-limited. The 30-day cache
+ * upstream keeps usage low — most loads hit the cache, not the network.
+ */
+async function annotateRoadDistances(
+  origin: { lat: number; lng: number },
+  items: Poi[],
+): Promise<Poi[]> {
+  if (items.length === 0) return items;
+  const head = items.slice(0, OSRM_MAX_DESTINATIONS);
+  const coords = [
+    `${origin.lng},${origin.lat}`,
+    ...head.map((p) => `${p.lng},${p.lat}`),
+  ].join(";");
+  const dests = Array.from({ length: head.length }, (_, i) => i + 1).join(";");
+  const url = `${OSRM_TABLE}/${coords}?annotations=distance&sources=0&destinations=${dests}`;
+
+  try {
+    const res = await fetch(url, {
+      headers: { "User-Agent": "AapKaPlot/1.0 (property-poi)" },
+      signal: AbortSignal.timeout(8_000),
+      next: { revalidate: 86400 },
+    });
+    if (!res.ok) throw new Error(`osrm_status_${res.status}`);
+    const data = (await res.json()) as { code?: string; distances?: number[][] };
+    if (data.code !== "Ok" || !Array.isArray(data.distances?.[0])) {
+      throw new Error("osrm_bad_shape");
+    }
+    const row = data.distances[0];
+    return items.map((p, i): Poi => {
+      if (i < head.length && typeof row[i] === "number" && row[i] > 0) {
+        return { ...p, distanceKm: row[i] / 1000, distanceType: "road" };
+      }
+      return { ...p, distanceType: "straight" };
+    });
+  } catch (err) {
+    console.warn("[property-poi] osrm_failed, keeping haversine", (err as Error).message);
+    return items.map((p): Poi => ({ ...p, distanceType: "straight" }));
+  }
 }
 
 /**
@@ -170,11 +229,11 @@ export async function fetchPropertyPois(lat: number, lng: number): Promise<Prope
   }
 
   // 2. Persistent cache via LocalityInsight (reuse table — keyed by
-  //    "property-poi" + bucket so it never collides with locality data).
+  //    "property-poi-v2" + bucket so it never collides with locality data).
   try {
     if (process.env.USE_DB === "1") {
       const row = await prisma.localityInsight.findUnique({
-        where: { cityKey_localityKey: { cityKey: "property-poi", localityKey: key } },
+        where: { cityKey_localityKey: { cityKey: "property-poi-v2", localityKey: key } },
       });
       if (row && Date.now() - row.fetchedAt.getTime() < CACHE_TTL_DAYS * 86400 * 1000) {
         const bundle = row.data as unknown as PropertyPoiBundle;
@@ -217,12 +276,21 @@ export async function fetchPropertyPois(lat: number, lng: number): Promise<Prope
           lat: plat,
           lng: plng,
           distanceKm: haversineKm({ lat, lng }, { lat: plat, lng: plng }),
+          distanceType: "straight",
         });
       }
       items.sort((a, b) => a.distanceKm - b.distanceKm);
     }
   } catch (err) {
     console.warn("[property-poi] fetch_failed", (err as Error).message);
+  }
+
+  // Upgrade haversine distances to real driving distances via OSRM.
+  // Single network call covers the top 25 — anything past that stays
+  // straight-line. Re-sort because driving order can differ from crow-flies.
+  if (items.length > 0) {
+    items = await annotateRoadDistances({ lat, lng }, items);
+    items.sort((a, b) => a.distanceKm - b.distanceKm);
   }
 
   // Group top-3 by category for compact rendering.
@@ -249,9 +317,9 @@ export async function fetchPropertyPois(lat: number, lng: number): Promise<Prope
     if (process.env.USE_DB === "1" && items.length > 0) {
       const data = bundle as unknown as Prisma.InputJsonValue;
       await prisma.localityInsight.upsert({
-        where: { cityKey_localityKey: { cityKey: "property-poi", localityKey: key } },
+        where: { cityKey_localityKey: { cityKey: "property-poi-v2", localityKey: key } },
         create: {
-          cityKey: "property-poi",
+          cityKey: "property-poi-v2",
           localityKey: key,
           lat, lng,
           data,
@@ -267,4 +335,4 @@ export async function fetchPropertyPois(lat: number, lng: number): Promise<Prope
   return bundle;
 }
 
-export { CATEGORY_ORDER, formatKm };
+export { CATEGORY_ORDER, formatKm, poiDistanceLabel };

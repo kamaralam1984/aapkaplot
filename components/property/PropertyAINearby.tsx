@@ -3,7 +3,7 @@ import {
   ShoppingBag, ShoppingCart, Utensils, Banknote, CreditCard, Shield,
   Fuel, Trees, Landmark, Building2,
 } from "lucide-react";
-import { fetchPropertyPois, type PoiCategory, type Poi, CATEGORY_ORDER, formatKm } from "@/lib/property-poi";
+import { fetchPropertyPois, type PoiCategory, type Poi, CATEGORY_ORDER, poiDistanceLabel } from "@/lib/property-poi";
 
 interface PropertyAINearbyProps {
   lat: number;
@@ -68,8 +68,11 @@ export async function PropertyAINearby({ lat, lng }: PropertyAINearbyProps) {
         <div className="min-w-0 flex-1">
           <h3 className="text-[15px] font-bold text-ink-900">What's around · AI nearby</h3>
           <p className="text-[12.5px] text-ink-500">
-            Auto-detected from OpenStreetMap · {bundle.items.length} landmarks · refreshed {new Date(bundle.fetchedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
+            Auto-detected from OpenStreetMap · {bundle.items.length} landmarks · driving distance via OSRM · refreshed {new Date(bundle.fetchedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
             {bundle.source === "cache" && " (cached)"}
+          </p>
+          <p className="mt-1 text-[11px] text-ink-400">
+            Distances are by road. <span className="font-semibold">≈</span> means straight-line (used when routing is unavailable).
           </p>
         </div>
       </header>
@@ -119,11 +122,17 @@ export async function PropertyAINearby({ lat, lng }: PropertyAINearbyProps) {
 }
 
 function PoiRow({ poi }: { poi: Poi }) {
+  const isStraight = poi.distanceType === "straight";
   return (
     <li className="flex items-center justify-between gap-2 text-[12.5px]">
       <span className="min-w-0 truncate text-ink-700">{poi.name}</span>
-      <span className="shrink-0 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10.5px] font-bold text-emerald-700">
-        {formatKm(poi.distanceKm)}
+      <span
+        className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10.5px] font-bold ${
+          isStraight ? "bg-ink-100 text-ink-600" : "bg-emerald-50 text-emerald-700"
+        }`}
+        title={isStraight ? "Straight-line distance (driving route unavailable)" : "Driving distance via OSRM"}
+      >
+        {poiDistanceLabel(poi)}
       </span>
     </li>
   );
