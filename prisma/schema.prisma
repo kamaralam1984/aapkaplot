@@ -583,9 +583,24 @@ model SeoPage {
   lastIndexedAt   DateTime?   // when IndexNow ping succeeded
   publishedAt     DateTime?
 
+  /// Google Search Console performance snapshot (28-day rolling).
+  /// Populated by /api/admin/seo/gsc-sync when GSC_REFRESH_TOKEN is set.
+  gscClicks       Int?
+  gscImpressions  Int?
+  gscCtr          Float?     // 0..1
+  gscPosition     Float?     // average position; lower is better
+  gscViews        Int?       // app-side analytics fallback
+  lastGscSyncAt   DateTime?
+
+  /// Slug-audit flags raised by lib/seo/audit.ts — e.g. "TRIPLE_TOKEN",
+  /// "YEAR_STACK", "JUNK_FRAGMENT". Empty = clean.
+  qualityFlags    String[]   @default([])
+
   @@index([status, publishedAt])
   @@index([geoSlug])
   @@index([template])
   @@index([lastBuiltAt])
+  @@index([qualityScore])
+  @@index([gscPosition])
 }
 
