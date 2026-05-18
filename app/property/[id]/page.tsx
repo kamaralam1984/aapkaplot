@@ -103,37 +103,66 @@ export default async function PropertyDetailPage({ params }: PageProps) {
     { label: property.title },
   ];
 
+  // Schema bundle: RealEstateListing (Google's preferred type for property
+  // listings — richer than Residence) + BreadcrumbList. @graph wraps both
+  // in a single JSON-LD block so Google can pick out either entity.
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://aapkaplot.com";
+  const propertyUrl = `${siteUrl}/property/${property.id}`;
+  const galleryUrls = property.media.gallery?.length
+    ? property.media.gallery
+    : property.media.cover
+      ? [property.media.cover]
+      : [];
+
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "Residence",
-    name: property.title,
-    description: property.description,
-    image: property.media.gallery ?? [property.media.cover],
-    address: {
-      "@type": "PostalAddress",
-      streetAddress: property.location.locality,
-      addressLocality: property.location.city,
-      addressRegion: property.location.state,
-      addressCountry: "IN",
-    },
-    geo: {
-      "@type": "GeoCoordinates",
-      latitude: property.location.coords.lat,
-      longitude: property.location.coords.lng,
-    },
-    floorSize: {
-      "@type": "QuantitativeValue",
-      value: property.areaSqft,
-      unitCode: "FTK",
-    },
-    numberOfRooms: property.features.bedrooms,
-    offers: {
-      "@type": "Offer",
-      price: property.priceInr,
-      priceCurrency: "INR",
-      availability: "https://schema.org/InStock",
-      url: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://aapkaplot.com"}/property/${property.id}`,
-    },
+    "@graph": [
+      {
+        "@type": ["RealEstateListing", "Residence"],
+        "@id": propertyUrl,
+        url: propertyUrl,
+        name: property.title,
+        description: property.description,
+        image: galleryUrls,
+        datePosted: property.postedAt,
+        address: {
+          "@type": "PostalAddress",
+          streetAddress: property.location.locality,
+          addressLocality: property.location.city,
+          addressRegion: property.location.state,
+          addressCountry: "IN",
+        },
+        geo: {
+          "@type": "GeoCoordinates",
+          latitude: property.location.coords.lat,
+          longitude: property.location.coords.lng,
+        },
+        floorSize: {
+          "@type": "QuantitativeValue",
+          value: property.areaSqft,
+          unitCode: "FTK",
+          unitText: "Square Feet",
+        },
+        numberOfRooms: property.features.bedrooms,
+        offers: {
+          "@type": "Offer",
+          price: property.priceInr,
+          priceCurrency: "INR",
+          availability: "https://schema.org/InStock",
+          url: propertyUrl,
+          priceValidUntil: new Date(Date.now() + 90 * 86400 * 1000).toISOString().slice(0, 10),
+        },
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: breadcrumbs.map((b, i) => ({
+          "@type": "ListItem",
+          position: i + 1,
+          name: b.label,
+          item: b.href ? `${siteUrl}${b.href}` : propertyUrl,
+        })),
+      },
+    ],
   };
 
   return (
