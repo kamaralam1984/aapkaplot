@@ -533,6 +533,30 @@ model OtpCode {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Homepage lead capture — generic inquiries from the public
+// homepage "Get Best Property Deals" form. Not tied to a specific
+// property like the Lead model (which is buyer ↔ seller per listing).
+// ─────────────────────────────────────────────────────────────
+
+model Inquiry {
+  id             String   @id @default(cuid())
+  name           String
+  phone          String
+  email          String?
+  budgetInr      BigInt?
+  location       String?
+  message        String?
+  source         String   @default("homepage")  // homepage | chatbot | whatsapp
+  utm            Json?
+  status         String   @default("new")        // new | contacted | qualified | lost
+  contactedAt    DateTime?
+  createdAt      DateTime @default(now())
+
+  @@index([status, createdAt])
+  @@index([phone])
+}
+
+// ─────────────────────────────────────────────────────────────
 // Programmatic SEO — see lib/seo/* for generators & gates.
 // One row per indexable city × locality × kind × intent page.
 // ─────────────────────────────────────────────────────────────

@@ -4,6 +4,13 @@ import { Footer } from "@/components/layout/Footer";
 import { Hero } from "@/components/home/Hero";
 import { NearbyRail } from "@/components/home/NearbyRail";
 import { TopPicksStrip } from "@/components/home/TopPicksStrip";
+import { AiAssistantShowcase } from "@/components/home/AiAssistantShowcase";
+import { WhyChooseSection } from "@/components/home/WhyChooseSection";
+import { MapLocationSection } from "@/components/home/MapLocationSection";
+import { TestimonialsSection } from "@/components/home/TestimonialsSection";
+import { LeadCaptureSection } from "@/components/home/LeadCaptureSection";
+import { StickyWhatsApp } from "@/components/layout/StickyWhatsApp";
+import { FloatingChatBot } from "@/components/layout/FloatingChatBot";
 // Below-the-fold sections — load on demand so the initial JS bundle stays
 // small. These never appear above the viewport on first paint, so deferring
 // them removes them from the LCP / INP critical path.
@@ -68,16 +75,18 @@ export default async function HomePage() {
     <>
       <Navbar />
       <main>
+        {/* 1. Hero — headline + search + CTAs */}
         <Hero />
 
-        {/* Top picks: Best Deals → Sponsored → Just Added — sits between Hero and Nearby */}
+        {/* 2. AI Chat Assistant feature showcase */}
+        <AiAssistantShowcase />
+
+        {/* 3. Featured Properties — Best Deals, Sponsored, Just Added rails */}
         <TopPicksStrip
           latest={latest}
           sponsored={sponsored}
           bestDeals={bestDeals}
         />
-
-        {/* Nearby property rail — sits directly under the hero map, like the screenshot */}
         <NearbyRail
           properties={nearby}
           title="Nearby Properties"
@@ -87,16 +96,32 @@ export default async function HomePage() {
         {/* Category quick-links row */}
         <CategoryGrid />
 
-        {/* AI-recommended carousel + WhyUs side panel */}
+        {/* 4. Why Choose AapKaPlot */}
+        <WhyChooseSection />
+
+        {/* 5. Map & Location intelligence */}
+        <MapLocationSection />
+
+        {/* AI-recommended carousel */}
         <AIRecommendations properties={aiPicks.length ? aiPicks : nearby} />
 
-        {/* Latest YouTube videos from @aapkaplot */}
+        {/* 6. YouTube property videos */}
         <YouTubeRail videos={videos} />
+
+        {/* 8. Testimonials */}
+        <TestimonialsSection />
+
+        {/* 7. Lead capture inquiry form */}
+        <LeadCaptureSection />
 
         {/* Sponsored partners */}
         <HomepageAdSlot />
       </main>
       <Footer />
+
+      {/* Extra: sticky WhatsApp + AI chatbot widgets — global, every page */}
+      <StickyWhatsApp />
+      <FloatingChatBot />
 
       {/* JSON-LD: organization + website */}
       <script
