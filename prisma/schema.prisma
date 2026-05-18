@@ -119,6 +119,8 @@ model User {
   commissionsEarned Commission[]
 }
 
+// Append to Property model — price history relation.
+
 model Property {
   id           String         @id @default(cuid())
   title        String
@@ -183,6 +185,7 @@ model Property {
   visits       VisitRequest[]
   reviews      Review[]
   referrals    BrokerReferral[]
+  priceHistory PriceHistory[]
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -495,6 +498,23 @@ model Visit {
   @@index([lastSeenAt])
   @@index([country])
   @@index([userId])
+}
+
+/// Per-property price change history. Server records a row every time
+/// Property.priceInr changes via /api/seller/property/[id] PATCH or
+/// /api/admin/properties/[id] PATCH. The property page renders this as
+/// a simple time-series chart so buyers can see negotiation room.
+model PriceHistory {
+  id          String   @id @default(cuid())
+  propertyId  String
+  priceInr    Int
+  changedBy   String?  // userId who triggered the change
+  reason      String?  // optional note ("price drop", "seller edit", ...)
+  recordedAt  DateTime @default(now())
+
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId, recordedAt])
 }
 
 model OtpCode {

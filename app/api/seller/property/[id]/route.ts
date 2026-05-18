@@ -101,7 +101,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!session) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
   const { id } = await params;
-  const existing = await prisma.property.findUnique({ where: { id }, select: { ownerId: true, lat: true, lng: true } });
+  const existing = await prisma.property.findUnique({ where: { id }, select: { ownerId: true, lat: true, lng: true, priceInr: true } });
   if (!existing) return NextResponse.json({ error: "not_found" }, { status: 404 });
   // Owner OR admin can edit. Admins editing on behalf of a seller is the path
   // used by /admin/properties/edit/[id].
@@ -163,6 +163,23 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         await syncGeom(updated.id);
       } catch (err) {
         console.error("[seller/property/PATCH] syncGeom_failed", updated.id, err);
+      }
+    }
+
+    // Record price change in history table so buyers see negotiation room.
+    if (d.priceInr !== undefined && d.priceInr !== existing.priceInr) {
+      try {
+        await prisma.priceHistory.create({
+          data: {
+            propertyId: updated.id,
+            priceInr: d.priceInr,
+            changedBy: session.uid,
+            reason:
+              d.priceInr < existing.priceInr ? "Price drop by owner" : "Price update by owner",
+          },
+        });
+      } catch (err) {
+        console.error("[seller/property/PATCH] priceHistory_failed", err);
       }
     }
     // Bust the ISR cache for the public property page so the edit is visible
