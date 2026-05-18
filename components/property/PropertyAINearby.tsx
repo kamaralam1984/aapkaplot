@@ -71,8 +71,32 @@ export async function PropertyAINearby({ lat, lng }: PropertyAINearbyProps) {
             Auto-detected from OpenStreetMap · {bundle.items.length} landmarks · driving distance via OSRM · refreshed {new Date(bundle.fetchedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
             {bundle.source === "cache" && " (cached)"}
           </p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-ink-500">
+            <span>
+              Distances measured from pinned location{" "}
+              <span className="font-mono font-semibold text-ink-700">
+                {lat.toFixed(4)}°N, {lng.toFixed(4)}°E
+              </span>
+            </span>
+            <a
+              href={`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=16/${lat}/${lng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-violet-700 underline-offset-2 hover:underline"
+            >
+              View pin on map ↗
+            </a>
+            <a
+              href={`https://www.google.com/maps?q=${lat},${lng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-violet-700 underline-offset-2 hover:underline"
+            >
+              Open in Google Maps ↗
+            </a>
+          </div>
           <p className="mt-1 text-[11px] text-ink-400">
-            Distances are by road. <span className="font-semibold">≈</span> means straight-line (used when routing is unavailable).
+            By road via OSRM. <span className="font-semibold">≈</span> means straight-line (used when routing is unavailable). If the pin looks wrong, edit the listing to move it.
           </p>
         </div>
       </header>

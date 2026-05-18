@@ -293,9 +293,18 @@ export async function fetchPropertyPois(lat: number, lng: number): Promise<Prope
     items.sort((a, b) => a.distanceKm - b.distanceKm);
   }
 
-  // Group top-3 by category for compact rendering.
+  // Group top-3 by category, deduping by lowercase name. OSM frequently has
+  // multiple nodes with the same name within a small area (e.g. a station +
+  // its sub-platform marked separately). Keeping only the closest occurrence
+  // per name produces a much cleaner card.
   const byCategory: Partial<Record<PoiCategory, Poi[]>> = {};
+  const seenNamesPerCat = new Map<PoiCategory, Set<string>>();
   for (const it of items) {
+    const seen = seenNamesPerCat.get(it.category) ?? new Set<string>();
+    const key = it.name.trim().toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    seenNamesPerCat.set(it.category, seen);
     const list = byCategory[it.category] ?? [];
     if (list.length < 3) {
       list.push(it);
