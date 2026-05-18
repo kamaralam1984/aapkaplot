@@ -50,7 +50,7 @@ const FAQ = [
     section: "Payments & boosts",
     id: "payments",
     items: [
-      { q: "What payment methods do you accept?", a: "UPI, all major credit/debit cards (Visa, Mastercard, RuPay), NetBanking and Razorpay wallet. GST invoice included." },
+      { q: "What payment methods do you accept?", a: "Online payments are temporarily paused while we upgrade our payment system. For now our team will contact you within 24 hours to take care of boosts, premium listings and verification billing — GST invoice included." },
       { q: "Can I cancel a Premium plan?", a: "Yes — cancellation takes effect at the next billing cycle. We refund 100% within 24 hours of any purchase if you change your mind." },
       { q: "Will my boost auto-renew?", a: "No. Spotlight, Featured and Turbo are one-time purchases. Premium is a monthly subscription you can cancel anytime." },
     ],

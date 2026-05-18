@@ -58,7 +58,7 @@ export default function PrivacyPage() {
                 <p>We share only what's strictly necessary, only with these parties:</p>
                 <ul className="list-disc pl-6">
                   <li>Property sellers you choose to contact (your name + phone, never address).</li>
-                  <li>Payment processor (Razorpay) — only for transaction details.</li>
+                  <li>Payment processor — only for transaction details (currently disabled while we migrate providers).</li>
                   <li>SMS/WhatsApp provider — for OTP and visit alerts.</li>
                   <li>Indian tax authorities — when legally required.</li>
                 </ul>

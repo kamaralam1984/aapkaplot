@@ -204,7 +204,7 @@ model Payment {
   propertyId  String?
   plan        String   // e.g. "boost-7d", "feature-30d"
   amountInr   Int
-  provider    String   @default("razorpay")
+  provider    String   @default("manual")  // online payments paused; set per-provider when re-enabled
   orderId     String   @unique
   paymentId   String   @unique
   signature   String

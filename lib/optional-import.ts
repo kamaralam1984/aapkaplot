@@ -1,9 +1,9 @@
 /**
  * Dynamic import that bypasses webpack's static analyzer. Use this for
- * optional dependencies (next-auth, razorpay, @anthropic-ai/sdk, @aws-sdk/*)
- * so production builds don't fail when the package isn't installed.
+ * optional dependencies (next-auth, @anthropic-ai/sdk, @aws-sdk/*) so
+ * production builds don't fail when the package isn't installed.
  *
- *   const sdk = await importOptional<typeof import("razorpay")>("razorpay");
+ *   const sdk = await importOptional<typeof import("next-auth")>("next-auth");
  *   if (!sdk) return fallback();
  */
 
