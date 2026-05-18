@@ -20,9 +20,21 @@
 @layer base {
   html, body {
     /* Prevent any element with negative offsets or absolute positioning
-       from creating a horizontal scrollbar / blank gutter on wide screens. */
+       from creating a horizontal scrollbar / blank gutter.
+       overflow-x:hidden is the fallback for older WebViews (Android
+       WebView in WhatsApp/Instagram in-app browsers don't fully honour
+       `clip`). 100% — not 100vw — because vw includes the scrollbar
+       width on some engines and clips ~5–15 px of content on the right. */
+    overflow-x: hidden;
     overflow-x: clip;
-    max-width: 100vw;
+    width: 100%;
+    max-width: 100%;
+  }
+  /* Defence-in-depth: keep every root child inside the viewport.
+     Prevents one stray fixed-width section from causing the whole
+     page to overflow when CSS clip falls back to scroll. */
+  body > * {
+    max-width: 100%;
   }
   /* ── Mobile fit-to-screen safety net ───────────────────────────────
      Even when source markup is clean, third-party / user-generated content
