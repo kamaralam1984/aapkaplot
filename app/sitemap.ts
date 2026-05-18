@@ -128,6 +128,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     };
   });
 
+  // Programmatic SEO pages — daily cron generates up to 100/day, hard-capped
+  // at quality ≥70 (see lib/seo/quality-gate.ts). Take 45 000 URLs to leave
+  // headroom under Google's 50 000-URL sitemap ceiling.
+  let seoPages: MetadataRoute.Sitemap = [];
+  try {
+    const rows = await prisma.seoPage.findMany({
+      where: { status: "PUBLISHED" },
+      select: { slug: true, lastBuiltAt: true, qualityScore: true },
+      orderBy: [{ qualityScore: "desc" }, { lastBuiltAt: "desc" }],
+      take: 45000,
+    });
+    seoPages = rows.map((r) => ({
+      url: `${BASE}/seo/${r.slug}`,
+      lastModified: r.lastBuiltAt,
+      changeFrequency: "weekly" as const,
+      // Higher-quality pages get a small priority bump; capped so they
+      // don't overshadow real property listings.
+      priority: Math.min(0.78, 0.55 + (r.qualityScore - 70) / 200),
+    }));
+  } catch (err) {
+    console.warn("[sitemap] seo_page_fetch_failed", err);
+  }
+
   return [
     ...staticPages,
     ...intentKindMatrix,
@@ -137,5 +160,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...projectPages,
     ...localityPages,
     ...propertyPages,
+    ...seoPages,
   ];
 }

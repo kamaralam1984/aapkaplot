@@ -7,7 +7,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/"],
+        allow: ["/", "/api/indexnow-key"],
         disallow: ["/api/", "/admin/", "/me/", "/sell/", "/auth/", "/chat/"],
       },
     ],

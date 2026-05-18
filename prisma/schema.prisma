@@ -531,3 +531,61 @@ model OtpCode {
 
   @@index([identifier, channel, createdAt])
 }
+
+// ─────────────────────────────────────────────────────────────
+// Programmatic SEO — see lib/seo/* for generators & gates.
+// One row per indexable city × locality × kind × intent page.
+// ─────────────────────────────────────────────────────────────
+
+enum SeoTemplate {
+  OVERVIEW_MAP
+  BUYING_GUIDE
+  PRICE_DASHBOARD
+  COMPARISON
+  INVESTMENT_OUTLOOK
+  KNOWLEDGE_FAQ
+}
+
+enum SeoStatus {
+  PENDING
+  PUBLISHED
+  REJECTED      // Failed quality gate; kept for diagnostics
+  ARCHIVED      // Page de-indexed deliberately
+}
+
+model SeoPage {
+  id              String      @id @default(cuid())
+
+  /// Stable URL slug. Format: "{intent}-{kind}/{geo-slug}" e.g. "buy-plot/boring-road"
+  slug            String      @unique
+
+  intent          String      // "buy" | "rent"
+  kind            String      // PropertyKind slug (plot/flat/...) — denormalised for indexing
+  geoSlug         String      // matches geo-dataset.ts GeoEntry.slug
+  parentGeoSlug   String?     // parent city when geo is a locality
+
+  template        SeoTemplate
+  status          SeoStatus   @default(PENDING)
+
+  title           String
+  metaDescription String      @db.Text
+  h1              String
+
+  /// Full ComposedPage payload (blocks, paragraphs, data, sources, keywords)
+  content         Json
+
+  qualityScore    Int         // 0–100; ≥70 required to publish
+  wordCount       Int
+  sources         String[]    // ["aapkaplot-listings","wikipedia","openstreetmap"]
+  keywords        String[]
+
+  lastBuiltAt     DateTime    @default(now())
+  lastIndexedAt   DateTime?   // when IndexNow ping succeeded
+  publishedAt     DateTime?
+
+  @@index([status, publishedAt])
+  @@index([geoSlug])
+  @@index([template])
+  @@index([lastBuiltAt])
+}
+
