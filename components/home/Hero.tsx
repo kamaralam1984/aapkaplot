@@ -115,24 +115,29 @@ export function Hero() {
               </Link>
             </div>
 
-            {/* Stats / trust row */}
-            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {HERO_STATS.map((s) => (
-                <div
-                  key={s.id}
-                  className="flex items-center gap-3 rounded-2xl border border-ink-200/70 bg-white p-3 shadow-soft"
-                >
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-600">
-                    {ICONS[s.icon]}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-[13px] font-semibold leading-tight text-ink-900">
-                      {s.value}
-                    </p>
-                    <p className="truncate text-[11.5px] text-ink-500">{s.label}</p>
+            {/* Stats / trust row — horizontal snap-scroll on phones so the
+                user sees the full label of every card via swipe instead of
+                a cramped 2×2 grid where the second column truncates. From
+                sm+ we revert to the full 4-up grid. */}
+            <div className="mt-6 -mx-4 sm:mx-0">
+              <div className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 sm:grid sm:grid-cols-4 sm:px-0">
+                {HERO_STATS.map((s) => (
+                  <div
+                    key={s.id}
+                    className="flex w-[78%] min-w-0 shrink-0 snap-start items-center gap-3 rounded-2xl border border-ink-200/70 bg-white p-3 shadow-soft sm:w-auto sm:shrink"
+                  >
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-600">
+                      {ICONS[s.icon]}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-[13px] font-semibold leading-tight text-ink-900">
+                        {s.value}
+                      </p>
+                      <p className="truncate text-[11.5px] text-ink-500">{s.label}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
 
