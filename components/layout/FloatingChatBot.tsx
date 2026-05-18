@@ -45,16 +45,22 @@ export function FloatingChatBot() {
     setMessages((m) => [...m, { role: "user", text }]);
     setInput("");
 
-    // Try the AI chat API; if it fails, use a templated reply.
+    // Try the AI chat API (OpenAI-backed). Send full message history so the
+    // assistant has context across turns.
     try {
+      const history = [...messages, { role: "user" as const, text }];
+      const apiMessages = history.map((m) => ({
+        role: m.role === "bot" ? ("assistant" as const) : ("user" as const),
+        content: m.text,
+      }));
       const res = await fetch("/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, scope: "homepage-assistant" }),
+        body: JSON.stringify({ messages: apiMessages }),
       });
       if (res.ok) {
         const j = await res.json().catch(() => ({}));
-        const reply = (j.reply ?? j.message ?? "").toString().trim();
+        const reply = (j.reply ?? j.message ?? j.text ?? "").toString().trim();
         if (reply) { pushBot(reply); return; }
       }
     } catch { /* fall through */ }

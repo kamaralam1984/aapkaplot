@@ -40,6 +40,7 @@ export default async function AdminLayout({
         { href: "/admin/users",        label: "Users",         icon: "users" },
         { href: "/admin/verifications", label: "Verifications", icon: "shield" },
         { href: "/admin/seo",          label: "SEO Pages",     icon: "seo" },
+        { href: "/admin/ai-tools",     label: "AI Studio",     icon: "sparkles" },
         { href: "/admin/analytics",    label: "Analytics",     icon: "analytics" },
         { href: "/admin/events",       label: "Events",        icon: "activity" },
         { href: "/admin/heatmap",      label: "Heatmap",       icon: "activity" },
