@@ -8,7 +8,7 @@ import {
   Bell, ChevronDown, Menu, X, Search, LogOut,
   LayoutDashboard, Heart, CalendarDays, BellRing, Sparkles, MessagesSquare, Settings,
   ListChecks, Inbox, BarChart3, Plus, Rocket,
-  ShieldAlert, Users, Activity, Megaphone,
+  ShieldAlert, Users, Activity, Megaphone, Globe,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Logo } from "@/components/layout/Logo";
@@ -34,6 +34,7 @@ const ICONS: Record<string, LucideIcon> = {
   users: Users,
   activity: Activity,
   ads: Megaphone,
+  seo: Globe,
 };
 
 export type DashboardIconKey = keyof typeof ICONS;

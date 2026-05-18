@@ -21,6 +21,15 @@ import { pickTemplate } from "./template-router";
 export const MAX_PER_RUN = 100;
 const REFRESH_AFTER_DAYS = 30;
 
+const PRISMA_TEMPLATE_TO_VARIANT: Record<string, "overview-map" | "buying-guide" | "price-dashboard" | "comparison" | "investment-outlook" | "knowledge-faq"> = {
+  OVERVIEW_MAP: "overview-map",
+  BUYING_GUIDE: "buying-guide",
+  PRICE_DASHBOARD: "price-dashboard",
+  COMPARISON: "comparison",
+  INVESTMENT_OUTLOOK: "investment-outlook",
+  KNOWLEDGE_FAQ: "knowledge-faq",
+};
+
 const TEMPLATE_TO_ENUM: Record<string, "OVERVIEW_MAP" | "BUYING_GUIDE" | "PRICE_DASHBOARD" | "COMPARISON" | "INVESTMENT_OUTLOOK" | "KNOWLEDGE_FAQ"> = {
   "overview-map": "OVERVIEW_MAP",
   "buying-guide": "BUYING_GUIDE",
@@ -213,3 +222,97 @@ export async function runGeneration(limit = MAX_PER_RUN): Promise<GenerationResu
   result.durationMs = Date.now() - start;
   return result;
 }
+
+// ─────────────────────────────────────────────────────────────
+// Single-page operations (used by admin actions)
+// ─────────────────────────────────────────────────────────────
+
+export interface SingleRebuildResult {
+  ok: boolean;
+  published: boolean;
+  score: number;
+  wordCount: number;
+  reasons: string[];
+}
+
+/** Rebuild a single SeoPage in-place — re-fetches all sources, recomposes,
+ *  re-grades, and persists. Returns whether it passed the quality gate. */
+export async function rebuildSinglePage(seoPageId: string): Promise<SingleRebuildResult> {
+  const row = await prisma.seoPage.findUnique({ where: { id: seoPageId } });
+  if (!row) {
+    return { ok: false, published: false, score: 0, wordCount: 0, reasons: ["not found"] };
+  }
+
+  const geo = GEO_BY_SLUG.get(row.geoSlug);
+  if (!geo) {
+    return { ok: false, published: false, score: 0, wordCount: 0, reasons: ["geo slug not in dataset"] };
+  }
+  const parentGeo = row.parentGeoSlug ? GEO_BY_SLUG.get(row.parentGeoSlug) : undefined;
+
+  const placeForOsmWiki = geo.tier === "locality" && parentGeo
+    ? `${geo.name}, ${parentGeo.name}`
+    : geo.name;
+
+  const [wiki, poi, stats] = await Promise.all([
+    fetchWikiSummary(placeForOsmWiki),
+    fetchNearbyPoi(geo.lat, geo.lng),
+    fetchListingStats(prisma, parentGeo?.name ?? geo.name, parentGeo ? geo.name : undefined),
+  ]);
+
+  const composed = composePage({
+    geo,
+    parentGeo,
+    kind: row.kind as Parameters<typeof composePage>[0]["kind"],
+    intent: row.intent as Parameters<typeof composePage>[0]["intent"],
+    wiki,
+    poi,
+    stats,
+    slug: row.slug,
+  });
+
+  const grade = gradePage(composed);
+  const variant = pickTemplate(row.slug);
+  const passes = grade.passes;
+
+  await prisma.seoPage.update({
+    where: { id: seoPageId },
+    data: {
+      template: TEMPLATE_TO_ENUM[variant],
+      status: passes ? "PUBLISHED" : "REJECTED",
+      title: composed.title,
+      metaDescription: composed.metaDescription,
+      h1: composed.h1,
+      content: JSON.parse(JSON.stringify(composed)),
+      qualityScore: grade.score,
+      wordCount: composed.wordCount,
+      sources: composed.sources,
+      keywords: composed.keywords,
+      lastBuiltAt: new Date(),
+      ...(passes && row.status !== "PUBLISHED" ? { publishedAt: new Date() } : {}),
+    },
+  });
+
+  return {
+    ok: true,
+    published: passes,
+    score: grade.score,
+    wordCount: composed.wordCount,
+    reasons: grade.reasons,
+  };
+}
+
+/** Try harder: rebuild with up to 3 internal retries (no behavioural diff right
+ *  now — composer is deterministic — but provides a future hook for "shuffle
+ *  variation seed" without breaking page URLs). Returns final attempt result.
+ *  Use [[PRISMA_TEMPLATE_TO_VARIANT]] when surfacing the active template. */
+export async function improveSinglePage(seoPageId: string, maxAttempts = 3): Promise<SingleRebuildResult> {
+  let last: SingleRebuildResult = { ok: false, published: false, score: 0, wordCount: 0, reasons: ["no attempts"] };
+  for (let i = 0; i < maxAttempts; i++) {
+    last = await rebuildSinglePage(seoPageId);
+    if (last.published) return last;
+  }
+  return last;
+}
+
+export { PRISMA_TEMPLATE_TO_VARIANT };
+

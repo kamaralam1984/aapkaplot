@@ -39,6 +39,7 @@ export default async function AdminLayout({
         { href: "/admin/fraud",        label: "AI Fraud",      icon: "sparkles" },
         { href: "/admin/users",        label: "Users",         icon: "users" },
         { href: "/admin/verifications", label: "Verifications", icon: "shield" },
+        { href: "/admin/seo",          label: "SEO Pages",     icon: "seo" },
         { href: "/admin/analytics",    label: "Analytics",     icon: "analytics" },
         { href: "/admin/events",       label: "Events",        icon: "activity" },
         { href: "/admin/heatmap",      label: "Heatmap",       icon: "activity" },
