@@ -250,13 +250,23 @@ function composeGuide(a: ComposeArgs): ComposedBlock {
     );
   } else {
     paras.push(
-      `Renters ${lookVerb} ${kPlural} in ${place} generally have more leverage than they think. ` +
-      `Owners value reliable tenants, so being prompt with documents, references and a clear move-in date often unlocks better terms than haggling on rent alone. ` +
-      `Negotiate the maintenance and lock-in clause as carefully as the headline rent.`
+      `Tenants ${lookVerb} ${kPlural} in ${place} generally have more leverage than they think. ` +
+      `Owners value reliable occupants, so being prompt with documents, references and a clear move-in date often unlocks better terms than haggling on the monthly figure alone. ` +
+      `Negotiate the maintenance, society charges and lock-in clause as carefully as the headline number.`
     );
     paras.push(
-      `Before signing, walk through the unit at the same time of day you would normally come home — afternoon visibility, evening noise levels and water pressure all read differently after sunset. ` +
+      `Before signing the agreement, walk through the unit at the same time of day you would normally come home — afternoon visibility, evening noise levels and water pressure all read differently after sunset. ` +
       `For ${longTail}, also confirm the society or building rules around guests, work-from-home setups and parking; these clauses are where most disputes show up later.`
+    );
+    paras.push(
+      `Build a realistic monthly outflow picture before you commit: add maintenance, electricity, internet, society charges and any one-time brokerage to the headline figure. ` +
+      `Many households in ${place} find that the all-in cost is 15 to 25 per cent higher than the advertised number, which can quietly stretch a tight household budget. ` +
+      `It also helps to read the exit clause carefully — notice period, dilapidation deductions and how the security deposit is refunded should all be spelled out in writing rather than left to a verbal understanding with the owner.`
+    );
+    paras.push(
+      `Long-term tenants in ${place} typically negotiate a small annual escalation cap (often 5 to 8 per cent) up front, which protects both sides from awkward conversations a year later. ` +
+      `If you intend to stay for more than two years, ask the owner about minor customisations — paint colour, fixture upgrades, even a small modular kitchen change — in exchange for a slightly longer lock-in. ` +
+      `This kind of trade-off tends to make the home feel like yours without costing the landlord anything material.`
     );
   }
   return { kind: "guide", heading: `${isBuy ? "Buying" : "Renting"} ${kPlural} in ${place}: what to watch for`, paragraphs: paras };
