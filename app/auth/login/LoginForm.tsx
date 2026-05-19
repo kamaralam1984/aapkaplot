@@ -3,10 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Mail, ArrowRight, Loader2, AlertCircle } from "lucide-react";
+import { Mail, Phone, ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
 import { Turnstile } from "@/components/auth/Turnstile";
+import { PhoneLoginPanel } from "./PhoneLoginPanel";
+import { isFirebasePhoneEnabled } from "@/lib/firebase-client";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -15,10 +17,13 @@ export default function LoginForm() {
   const params = useSearchParams();
   const next = params.get("next") ?? "/me";
 
+  const [mode, setMode] = useState<"email" | "phone">("email");
   const [email, setEmail] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+
+  const phoneEnabled = isFirebasePhoneEnabled();
 
   // Turnstile is only required when the site key env var is present;
   // when it's missing the server bypasses verification.
@@ -72,8 +77,39 @@ export default function LoginForm() {
         Welcome back
       </h1>
       <p className="mt-2 text-[14.5px] text-ink-600">
-        Enter your email — we'll send you a 6-digit code. No password.
+        {mode === "email"
+          ? "Enter your email — we'll send you a 6-digit code. No password."
+          : "Enter your mobile number — we'll send you a 6-digit SMS code."}
       </p>
+
+      {phoneEnabled && (
+        <div className="mt-6 inline-flex rounded-xl bg-ink-100 p-1 text-[13px] font-semibold">
+          <button
+            type="button"
+            onClick={() => { setMode("email"); setError(null); }}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${
+              mode === "email" ? "bg-white text-ink-900 shadow-soft" : "text-ink-500"
+            }`}
+          >
+            <Mail className="h-3.5 w-3.5" /> Email
+          </button>
+          <button
+            type="button"
+            onClick={() => { setMode("phone"); setError(null); }}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${
+              mode === "phone" ? "bg-white text-ink-900 shadow-soft" : "text-ink-500"
+            }`}
+          >
+            <Phone className="h-3.5 w-3.5" /> Phone
+          </button>
+        </div>
+      )}
+
+      {mode === "phone" ? (
+        <div className="mt-6">
+          <PhoneLoginPanel next={next} />
+        </div>
+      ) : (
 
       <form onSubmit={submit} className="mt-8 space-y-3">
         <label className="block">
@@ -118,6 +154,7 @@ export default function LoginForm() {
           {pending ? "Sending code..." : "Send code"}
         </Button>
       </form>
+      )}
 
       <div className="relative my-7 text-center">
         <span className="absolute inset-x-0 top-1/2 -z-0 h-px bg-ink-200" />
