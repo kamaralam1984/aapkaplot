@@ -9,6 +9,13 @@ import { MOCK_PROPERTIES } from "@/lib/mock-data";
 import { formatInr, formatArea } from "@/lib/format";
 import { AMENITIES_CATALOG } from "@/lib/property-detail";
 import type { Property } from "@/lib/types";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Compare properties",
+  description: "Compare up to 3 verified properties side-by-side — price, amenities, location, area and trust score.",
+  alternates: { canonical: "/compare" },
+};
 
 export const dynamic = "force-dynamic";
 

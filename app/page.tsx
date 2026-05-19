@@ -32,6 +32,11 @@ import { findNearby, listProperties } from "@/lib/data/properties";
 import { getLatestProperties, getSponsoredProperties, getBestDeals } from "@/lib/data/top-picks";
 import { fetchChannelVideos } from "@/lib/youtube";
 import type { Property } from "@/lib/types";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 // Avoid full-route caching so toggling USE_DB takes effect on next request.
 export const dynamic = "force-dynamic";

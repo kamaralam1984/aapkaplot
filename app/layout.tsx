@@ -100,14 +100,6 @@ export const metadata: Metadata = {
     description: "Live satellite property discovery for India. Verified owners, instant leads, AI-priced.",
     images: ["/opengraph-image"],
   },
-  alternates: {
-    canonical: siteUrl,
-    languages: {
-      "en-IN": siteUrl,
-      "hi-IN": siteUrl,
-      "x-default": siteUrl,
-    },
-  },
   robots: {
     index: true,
     follow: true,

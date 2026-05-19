@@ -10,6 +10,7 @@ export const metadata: Metadata = {
   title: "Pricing — Free, Premium & Builder plans",
   description:
     "Post your property free, or unlock featured placement, AI Recommendations slots, and verified-priority badges with a Premium or Builder plan.",
+  alternates: { canonical: "/pricing" },
 };
 
 const PLANS = [
