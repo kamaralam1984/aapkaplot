@@ -94,6 +94,10 @@ npx prisma db push --skip-generate --accept-data-loss=false >/dev/null || {
 }
 
 log "Building Next.js (production)…"
+# Wipe the build cache so NEXT_PUBLIC_* env-var changes always re-inline
+# into client chunks. Without this, Next's incremental cache happily
+# reuses old chunks that were baked with empty values.
+rm -rf .next/cache .next/static .next/server 2>/dev/null || true
 npm run build
 
 # ── Patch cloudflared config (idempotent) ──────────────────────────────
