@@ -24,7 +24,7 @@ const SUGGESTED_QUERIES = [
 export function FloatingChatBot() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: "bot", text: "Hi 👋 I'm AapKaPlot AI. Looking to buy, rent, or just exploring? Tell me your budget and city — I'll shortlist a few options." },
+    { role: "bot", text: "Namaste 🌸 main Chinkki — AapKaPlot ki AI saheli. Plot lena, rent karna, ya bas dhoondhna chahte hain? Apna budget aur sheher batayein, main aapke liye behtareen verified options chunti hoon — saath mein nearest amenities aur future growth bhi batati hoon." },
   ]);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
@@ -68,25 +68,25 @@ export function FloatingChatBot() {
     // Canned fallback — keeps the conversation moving toward WhatsApp.
     const lower = text.toLowerCase();
     if (lower.includes("budget") || lower.match(/\d+\s*(lakh|cr|crore)/)) {
-      pushBot("Great — I can shortlist a few verified listings in that range. Share your preferred city or locality and I'll send links here, or tap WhatsApp below to get them on chat.");
+      pushBot("Bahut khoob ji 🌸 main aapke budget mein verified listings shortlist kar dungi. Sheher ya locality batayein — saath mein wahaan ki nearest school, hospital aur upcoming development bhi batati chalungi. WhatsApp par bhi sab bhej sakti hoon.");
     } else if (lower.includes("visit") || lower.includes("schedule")) {
-      pushBot("To schedule a site visit, share your phone number or tap the WhatsApp button. A local AapKaPlot expert will confirm a time within the next 30 minutes.");
+      pushBot("Site-visit ki khaas baat aap kahi 😊 — apna phone number ya WhatsApp par tap kijiye, AapKaPlot ka local expert 30 min mein time confirm kar dega. Maine note kar liya hai ji.");
     } else if (lower.includes("patna") || lower.includes("bihar") || lower.includes("plot")) {
-      pushBot("AapKaPlot has fresh verified plots and flats across Patna and Bihar. Tell me your budget and preferred locality (Boring Road, Kankarbagh, Bailey Road, etc.) and I'll pull the best matches.");
+      pushBot("Patna aur Bihar mein fresh verified plots aur flats hain — Boring Road, Kankarbagh, Bailey Road sab covered. Aap budget aur locality batayein, main sirf wahi properties chunungi jismein paani-bijli-sadak achi ho aur future mein appreciation acha ho.");
     } else {
-      pushBot("Got it. Tap WhatsApp below for a quicker reply from our team, or tell me your city + budget and I'll suggest options.");
+      pushBot("Theek hai ji 🌸 — neeche WhatsApp button par tap karein hamari team se jaldi baat ho jayegi, ya mujhe apna sheher aur budget batayein, main khaas options dikhati hoon.");
     }
   }
 
   if (!open) {
     return (
       <button
-        aria-label="Open AapKaPlot AI assistant"
+        aria-label="Chinkki se baat karein — AapKaPlot AI saheli"
         onClick={() => setOpen(true)}
         className="fixed bottom-5 left-5 z-[60] inline-flex items-center gap-2 rounded-full bg-brand-gradient px-4 py-3 text-white shadow-glow hover:brightness-105 active:scale-95 transition"
       >
-        <span className="grid h-6 w-6 place-items-center rounded-full bg-white text-emerald-600 text-xs font-bold">AI</span>
-        <span className="hidden sm:inline text-sm font-semibold">Ask AapKaPlot</span>
+        <span className="grid h-6 w-6 place-items-center rounded-full bg-white text-pink-600 text-xs font-bold">Ch</span>
+        <span className="hidden sm:inline text-sm font-semibold">Chinkki se poochiye</span>
       </button>
     );
   }
@@ -95,10 +95,10 @@ export function FloatingChatBot() {
     <div className="fixed bottom-5 left-5 z-[60] w-[min(360px,calc(100vw-2.5rem))] rounded-2xl bg-white shadow-lift ring-1 ring-ink-200/70 overflow-hidden flex flex-col max-h-[min(560px,calc(100vh-2.5rem))]">
       <header className="flex items-center justify-between bg-brand-gradient px-4 py-3 text-white">
         <div className="flex items-center gap-2">
-          <span className="grid h-7 w-7 place-items-center rounded-full bg-white text-emerald-600 text-xs font-bold">AI</span>
+          <span className="grid h-7 w-7 place-items-center rounded-full bg-white text-pink-600 text-xs font-bold">Ch</span>
           <div>
-            <p className="text-sm font-semibold leading-none">AapKaPlot AI</p>
-            <p className="text-[11px] opacity-90 mt-0.5">Online · replies in seconds</p>
+            <p className="text-sm font-semibold leading-none">Chinkki · AapKaPlot</p>
+            <p className="text-[11px] opacity-90 mt-0.5">Online · narmi se jawab deti hoon</p>
           </div>
         </div>
         <button aria-label="Close chat" onClick={() => setOpen(false)} className="text-white/85 hover:text-white">

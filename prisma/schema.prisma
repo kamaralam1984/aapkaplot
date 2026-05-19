@@ -552,8 +552,17 @@ model Inquiry {
   contactedAt    DateTime?
   createdAt      DateTime @default(now())
 
+  // ── AI automation tracking (auto-reply / auto-match / auto-followup) ──
+  autoReplySentAt DateTime?
+  aiReplyDraft    String?   @db.Text       // last AI-drafted reply (email + wa) JSON
+  aiShortlistJson Json?                    // last shortlist {propertyId, score, reason}[]
+  lastFollowupAt  DateTime?
+  followupCount   Int       @default(0)
+
   @@index([status, createdAt])
   @@index([phone])
+  @@index([autoReplySentAt])
+  @@index([lastFollowupAt])
 }
 
 // ─────────────────────────────────────────────────────────────
