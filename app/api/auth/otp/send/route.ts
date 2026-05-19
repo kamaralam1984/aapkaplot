@@ -32,6 +32,14 @@ export async function POST(req: Request) {
   const { subject, html, text } = otpEmailContent(code);
   const sent = await sendEmail({ to: email, subject, html, text });
 
+  if (!sent.ok) {
+    console.error(`[otp/send] delivery failed for ${email}: ${sent.error}`);
+    return NextResponse.json(
+      { error: "email_delivery_failed", detail: sent.error },
+      { status: 502 }
+    );
+  }
+
   return NextResponse.json({
     ok: true,
     expiresInSec,

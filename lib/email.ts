@@ -19,7 +19,17 @@ interface SendArgs {
   text?: string;
 }
 
-const FROM_DEFAULT = "AapKaPlot <onboarding@resend.dev>";
+// Resend free plan only allows one verified domain on this account, and that
+// slot is held by vidyt.com. Until aapkaplot.com is verified (separate Resend
+// account / plan upgrade / different provider), send from the already-verified
+// vidyt.com mailbox. The display name keeps the brand correct in inboxes.
+const FROM_DEFAULT = "AapKaPlot <noreply@vidyt.com>";
+
+// Older deploys still have EMAIL_FROM=...onboarding@resend.dev in their
+// .env.local — that sender is sandbox-only and rejects every recipient
+// except the Resend account owner. Treat it as unset so we fall back to
+// the verified default above.
+const BROKEN_FROM_PATTERNS = [/onboarding@resend\.dev/i];
 
 type Via = "resend" | "smtp" | "console";
 
@@ -89,8 +99,13 @@ async function sendViaSmtp(args: SendArgs, from: string): Promise<{ ok: boolean;
   }
 }
 
-export async function sendEmail(args: SendArgs): Promise<{ ok: boolean; via: Via; id?: string }> {
-  const from = process.env.EMAIL_FROM ?? FROM_DEFAULT;
+export async function sendEmail(args: SendArgs): Promise<{ ok: boolean; via: Via; id?: string; error?: string }> {
+  const rawFrom = process.env.EMAIL_FROM;
+  const from =
+    rawFrom && !BROKEN_FROM_PATTERNS.some((p) => p.test(rawFrom))
+      ? rawFrom
+      : FROM_DEFAULT;
+  const errors: string[] = [];
 
   // 1. Try Resend.
   if (process.env.RESEND_API_KEY) {
@@ -100,6 +115,7 @@ export async function sendEmail(args: SendArgs): Promise<{ ok: boolean; via: Via
       return { ok: true, via: "resend", id: r.id };
     }
     console.warn(`[email:resend] failed (${r.error}) — falling back to SMTP`);
+    errors.push(`resend:${r.error}`);
   }
 
   // 2. Try SMTP.
@@ -110,9 +126,16 @@ export async function sendEmail(args: SendArgs): Promise<{ ok: boolean; via: Via
       return { ok: true, via: "smtp", id: s.id };
     }
     console.warn(`[email:smtp] failed (${s.error}) — falling back to console`);
+    errors.push(`smtp:${s.error}`);
   }
 
-  // 3. Console fallback for dev.
+  // 3. Console fallback — only acceptable in non-production. In production
+  // surface as a hard failure so the API can tell the user their OTP didn't
+  // actually leave the server (instead of silently lying with ok:true).
+  if (process.env.NODE_ENV === "production") {
+    console.error(`[email] all providers failed for to=${args.to}: ${errors.join(" | ")}`);
+    return { ok: false, via: "console", error: errors.join(" | ") || "no_provider_configured" };
+  }
   console.log(`[email:console] to=${args.to} subject="${args.subject}"`);
   if (args.text) console.log(`[email:console] ${args.text}`);
   return { ok: true, via: "console" };
