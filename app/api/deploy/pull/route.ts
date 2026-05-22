@@ -22,6 +22,10 @@ const ENV_WRITE_ALLOWLIST = new Set([
   "FIREBASE_ADMIN_PROJECT_ID",
   "FIREBASE_ADMIN_CLIENT_EMAIL",
   "FIREBASE_ADMIN_PRIVATE_KEY",
+  "RAZORPAY_KEY_ID",
+  "RAZORPAY_KEY_SECRET",
+  "RAZORPAY_WEBHOOK_SECRET",
+  "NEXT_PUBLIC_RAZORPAY_KEY_ID",
 ]);
 
 function upsertEnvFile(path: string, updates: Record<string, string>): { replaced: string[]; added: string[] } {
