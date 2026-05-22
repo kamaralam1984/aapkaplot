@@ -23,7 +23,7 @@ export async function pingIndexNow(urls: string[]): Promise<{ ok: boolean; statu
       body: JSON.stringify({
         host: site.replace(/^https?:\/\//, ""),
         key,
-        keyLocation: `${site}/api/indexnow-key`,
+        keyLocation: `${site}/${key}.txt`,
         urlList: urls,
       }),
     });
