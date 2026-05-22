@@ -1,6 +1,21 @@
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
+export const maxDuration = 30;
+
+function fallbackContent(pageTitle: string, url: string) {
+  const base = `🏠 ${pageTitle} — Verified property on AapKaPlot! AI-powered listings, trust-scored owners. Check it out: ${url}`;
+  return {
+    whatsapp:  `${base}\n\n📲 Share with family & friends looking for property! #AapKaPlot`,
+    facebook:  `${base}\n\n🔥 India's smartest real estate platform — find plots, flats & houses near you!`,
+    instagram: `✨ Dream property alert! 🏡\n${pageTitle}\n\nVerified. AI-priced. Real owners.\nLink in bio 👆\n\n#RealEstate #AapKaPlot #PropertyIndia #BuyPlot`,
+    twitter:   `🏠 ${pageTitle} — Now listed on @AapKaPlot!\nVerified owners • AI pricing • Live map\n👉 ${url}\n#RealEstate #India`,
+    linkedin:  `Exciting property opportunity: ${pageTitle}\n\nAapKaPlot is transforming Indian real estate with AI-powered lead generation and verified listings.\n${url}`,
+    telegram:  `🏡 Property Alert!\n\n${pageTitle}\n\n✅ Verified Owner\n🤖 AI-Priced\n📍 Live Map\n\nCheck: ${url}`,
+    hashtags:  ["#RealEstate","#AapKaPlot","#PropertyIndia","#BuyPlot","#VerifiedProperty"],
+    estimatedReach: "125K+",
+  };
+}
 
 export async function POST(req: Request) {
   let body: { url?: string; pageTitle?: string } = {};
@@ -14,7 +29,7 @@ export async function POST(req: Request) {
   const key = process.env.GROQ_API_KEY;
 
   if (!key) {
-    return NextResponse.json({ error: "groq_not_configured" }, { status: 503 });
+    return NextResponse.json(fallbackContent(pageTitle, url));
   }
 
   const prompt = `Generate viral social media posts for this Indian real estate page: '${pageTitle.slice(0, 200)}' at ${url}. Make posts engaging, use emojis, and tailor for each platform. Include Indian real estate enthusiasm. Return ONLY valid JSON with no markdown: { "whatsapp": "post text", "facebook": "post text", "instagram": "post text", "twitter": "post text", "linkedin": "post text", "telegram": "post text", "hashtags": ["tag1","tag2","tag3","tag4","tag5"], "estimatedReach": "125K+" }`;
@@ -32,11 +47,11 @@ export async function POST(req: Request) {
         max_tokens: 800,
         temperature: 0.7,
       }),
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(8000),
     });
 
     if (!res.ok) {
-      return NextResponse.json({ error: "groq_error", status: res.status }, { status: 502 });
+      return NextResponse.json(fallbackContent(pageTitle, url));
     }
 
     const data = await res.json();
@@ -63,6 +78,6 @@ export async function POST(req: Request) {
       estimatedReach: typeof parsed.estimatedReach === "string" ? parsed.estimatedReach : "125K+",
     });
   } catch {
-    return NextResponse.json({ error: "fetch_failed" }, { status: 502 });
+    return NextResponse.json(fallbackContent(pageTitle, url));
   }
 }
