@@ -1,5 +1,3 @@
-"use server";
-
 import { SectionHeader } from "@/components/dashboard/SectionHeader";
 import { prisma } from "@/server/db";
 import { PromoteForm } from "./PromoteForm";
