@@ -10,7 +10,7 @@ async function adminGuard() {
   return { session, err: null };
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { err } = await adminGuard();
   if (err) return err;
 
@@ -18,6 +18,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: "DB disabled" }, { status: 503 });
   }
 
+  const { id } = await params;
   const body = await req.json().catch(() => null);
   const { notes, status, interestScore } = body ?? {};
 
@@ -30,15 +31,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     data.interestLabel = score >= 80 ? "hot" : score >= 50 ? "warm" : "cold";
   }
 
-  const prospect = await prisma.outreachProspect.update({
-    where: { id: params.id },
-    data,
-  });
-
+  const prospect = await prisma.outreachProspect.update({ where: { id }, data });
   return NextResponse.json({ prospect });
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { err } = await adminGuard();
   if (err) return err;
 
@@ -46,6 +43,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ error: "DB disabled" }, { status: 503 });
   }
 
-  await prisma.outreachProspect.delete({ where: { id: params.id } });
+  const { id } = await params;
+  await prisma.outreachProspect.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }
