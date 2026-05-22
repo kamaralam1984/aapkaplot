@@ -1,5 +1,6 @@
 import { Users, Eye, Inbox, IndianRupee, TrendingUp, Activity, GitBranch } from "lucide-react";
 import { SectionHeader } from "@/components/dashboard/SectionHeader";
+import LiveDashboard from "./LiveDashboard";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { FunnelChart } from "@/components/admin/FunnelChart";
 import { CohortGrid } from "@/components/admin/CohortGrid";
@@ -91,7 +92,7 @@ export default async function AdminAnalyticsPage() {
   if (!k) {
     return (
       <div className="space-y-6">
-        <SectionHeader eyebrow="Insights" title="Platform analytics" subtitle="DB-off mode" />
+        <SectionHeader eyebrow="Insights" title="Live Tracking & Analytics" subtitle="DB-off mode" />
         <div className="surface-card p-6 text-[13.5px] text-rose-700">
           DB is disabled (<code>USE_DB ≠ 1</code>). Real-time analytics are unavailable.
         </div>
@@ -103,9 +104,11 @@ export default async function AdminAnalyticsPage() {
     <div className="space-y-8">
       <SectionHeader
         eyebrow="Insights"
-        title="Platform analytics"
+        title="Live Tracking & Analytics"
         subtitle="Live counts from the production Postgres catalogue. No mocks below this line."
       />
+
+      <LiveDashboard />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Total users"     value={k.totalUsers.toLocaleString("en-IN")}      icon={Users}       tone="violet" />
