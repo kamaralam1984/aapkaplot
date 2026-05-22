@@ -15,6 +15,7 @@ function compare(a: string, b: string): boolean {
 // caller from injecting arbitrary keys (e.g. JWT_SECRET) even with a
 // valid bearer.
 const ENV_WRITE_ALLOWLIST = new Set([
+  // Firebase
   "NEXT_PUBLIC_FIREBASE_API_KEY",
   "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN",
   "NEXT_PUBLIC_FIREBASE_PROJECT_ID",
@@ -22,11 +23,42 @@ const ENV_WRITE_ALLOWLIST = new Set([
   "FIREBASE_ADMIN_PROJECT_ID",
   "FIREBASE_ADMIN_CLIENT_EMAIL",
   "FIREBASE_ADMIN_PRIVATE_KEY",
+  // Razorpay
   "RAZORPAY_KEY_ID",
   "RAZORPAY_KEY_SECRET",
   "RAZORPAY_WEBHOOK_SECRET",
   "NEXT_PUBLIC_RAZORPAY_KEY_ID",
+  // AI APIs
   "GROQ_API_KEY",
+  "OPENAI_API_KEY",
+  "ANTHROPIC_API_KEY",
+  "GEMINI_API_KEY",
+  "OPENROUTER_API_KEY",
+  "MISTRAL_API_KEY",
+  "COHERE_API_KEY",
+  "DEEPSEEK_API_KEY",
+  "TOGETHER_API_KEY",
+  // Email / SMTP
+  "RESEND_API_KEY",
+  "SMTP_HOST",
+  "SMTP_PORT",
+  "SMTP_USER",
+  "SMTP_PASS",
+  "EMAIL_FROM",
+  "ADMIN_NOTIFY_EMAIL",
+  // SEO / Analytics
+  "NEXT_PUBLIC_GA_ID",
+  "INDEXNOW_KEY",
+  "PAGESPEED_API_KEY",
+  "SERPAPI_KEY",
+  "GSC_SITE_URL",
+  "GSC_OAUTH_CLIENT_ID",
+  "GSC_OAUTH_CLIENT_SECRET",
+  "GSC_OAUTH_REFRESH_TOKEN",
+  // Media / Misc
+  "IMGBB_API_KEY",
+  "NEXT_PUBLIC_GOOGLE_CLIENT_ID",
+  "NEXT_PUBLIC_SITE_URL",
 ]);
 
 function upsertEnvFile(path: string, updates: Record<string, string>): { replaced: string[]; added: string[] } {
