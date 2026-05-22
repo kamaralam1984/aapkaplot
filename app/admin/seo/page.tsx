@@ -5,7 +5,7 @@ import { isSuperAdminRole } from "@/lib/session";
 import { getSession } from "@/lib/auth-server";
 import {
   SeoRowActions, GenerateBatchButton, BulkRebuildRejectedButton,
-  TopActionBar, AuditPanel, GscPanel, DeleteBelowControl,
+  TopActionBar, AuditPanel, GscPanel, DeleteBelowControl, PingIndexNowButton,
 } from "./SeoActions";
 import { fetchGscPerformance, type GscResult } from "@/lib/seo/gsc";
 
@@ -155,6 +155,7 @@ export default async function AdminSeoPage({
           rejectedCount={rejectedCount}
           canDelete={canDelete}
         />
+        <PingIndexNowButton />
       </div>
 
       <DeleteBelowControl canDelete={canDelete} />

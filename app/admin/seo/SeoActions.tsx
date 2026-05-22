@@ -335,3 +335,35 @@ export function BulkRebuildRejectedButton({ count }: { count: number }) {
     </button>
   );
 }
+
+// ─────────────────────────────────────────────────────────────
+// Ping IndexNow — notify Bing/Yandex of key pages
+// ─────────────────────────────────────────────────────────────
+export function PingIndexNowButton() {
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+
+  async function ping() {
+    setBusy(true);
+    setResult(null);
+    try {
+      const res = await fetch("/api/admin/seo/ping-indexnow", { method: "POST" });
+      const j = await res.json().catch(() => ({}));
+      setResult(res.ok ? `✓ Pinged ${j.pinged ?? 0} URLs to IndexNow` : `✗ Failed (${j.status ?? res.status})`);
+    } catch {
+      setResult("✗ Network error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-3">
+      <button onClick={ping} disabled={busy}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-sky-300 bg-sky-50 px-3.5 py-2 text-sm font-semibold text-sky-800 hover:bg-sky-100 disabled:opacity-60">
+        {busy ? "Pinging…" : "⚡ Ping IndexNow"}
+      </button>
+      {result && <span className="text-xs text-ink-500">{result}</span>}
+    </div>
+  );
+}
