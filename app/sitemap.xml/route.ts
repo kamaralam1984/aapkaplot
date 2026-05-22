@@ -6,14 +6,18 @@ export const runtime = "nodejs";
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://aapkaplot.com";
 
+function xmlEscape(s: string) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 function url(loc: string, lastmod?: Date | string, changefreq?: string, priority?: number, images?: string[]) {
   const mod = lastmod ? `\n  <lastmod>${new Date(lastmod).toISOString()}</lastmod>` : "";
   const freq = changefreq ? `\n  <changefreq>${changefreq}</changefreq>` : "";
   const pri = priority !== undefined ? `\n  <priority>${priority}</priority>` : "";
   const imgs = images?.length
-    ? images.map((img) => `\n  <image:image><image:loc>${img}</image:loc></image:image>`).join("")
+    ? images.map((img) => `\n  <image:image><image:loc>${xmlEscape(img)}</image:loc></image:image>`).join("")
     : "";
-  return `<url>\n  <loc>${loc}</loc>${mod}${freq}${pri}${imgs}\n</url>`;
+  return `<url>\n  <loc>${xmlEscape(loc)}</loc>${mod}${freq}${pri}${imgs}\n</url>`;
 }
 
 export async function GET() {
