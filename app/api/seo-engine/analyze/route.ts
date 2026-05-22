@@ -99,10 +99,19 @@ export async function GET(req: Request) {
   } catch {
     // ignore
   }
-  // Only flag if a line is exactly "Disallow: /" (blocks root) — not /api/ or /admin/
-  const robotsBlocksAll = robotsContent.split("\n").some((line) =>
-    /^disallow:\s*\/\s*$/i.test(line.trim())
-  );
+  // Only flag if the wildcard User-agent: * block has Disallow: /
+  // Cloudflare adds Disallow: / for specific AI bots — that's fine and should not be flagged
+  let robotsBlocksAll = false;
+  {
+    const lines = robotsContent.split("\n");
+    let inWildcard = false;
+    for (const line of lines) {
+      const t = line.trim();
+      if (/^user-agent:\s*\*\s*$/i.test(t)) { inWildcard = true; continue; }
+      if (/^user-agent:/i.test(t)) { inWildcard = false; continue; }
+      if (inWildcard && /^disallow:\s*\/\s*$/i.test(t)) { robotsBlocksAll = true; break; }
+    }
+  }
 
   // ── 4. Check sitemap.xml ─────────────────────────────────────────────────
   let hasSitemap = false;
