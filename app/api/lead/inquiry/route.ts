@@ -18,6 +18,7 @@ import { prisma } from "@/server/db";
 import { matchInquiry } from "@/lib/ai/auto-match";
 import { draftAutoReply, buildWaMeLink } from "@/lib/ai/auto-reply";
 import { sendEmail } from "@/lib/email";
+import { scoreInquiry } from "@/lib/ai/lead-score";
 
 export const dynamic = "force-dynamic";
 
@@ -144,9 +145,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "internal error" }, { status: 500 });
   }
 
-  // Fire-and-forget AI auto-reply. Never block the grahak's form submit on
-  // OpenAI / SMTP latency — failures are logged, not surfaced.
+  // Fire-and-forget: auto-reply + lead scoring. Never block the form submit.
   void processAutoReply(created.id);
+  void scoreInquiry(created.id);
 
   return NextResponse.json({ ok: true });
 }

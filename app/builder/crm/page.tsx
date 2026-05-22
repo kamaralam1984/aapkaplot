@@ -13,6 +13,7 @@ import { prisma } from "@/server/db";
 import { SectionHeader } from "@/components/dashboard/SectionHeader";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { LeadScoreBadge } from "./LeadScoreBadge";
+import { LeadStatusSelect } from "./LeadStatusSelect";
 
 export const dynamic = "force-dynamic";
 
@@ -138,7 +139,7 @@ function LeadRow({ lead }: { lead: CrmLead }) {
       </td>
       {/* Status */}
       <td className="px-4 py-3">
-        <StatusPill status={lead.status} />
+        <LeadStatusSelect leadId={lead.id} initialStatus={lead.status} />
       </td>
       {/* Actions */}
       <td className="px-4 py-3">
