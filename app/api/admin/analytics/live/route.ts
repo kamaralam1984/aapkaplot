@@ -41,7 +41,24 @@ export async function GET() {
     prisma.visit.groupBy({ by: ["country"], where: { country: { not: null }, landedAt: { gte: d30 } }, _count: { _all: true }, orderBy: { _count: { id: "desc" } }, take: 8 }),
     prisma.visit.groupBy({ by: ["city"], where: { city: { not: null }, landedAt: { gte: d7 } }, _count: { _all: true }, orderBy: { _count: { id: "desc" } }, take: 8 }),
     prisma.visit.groupBy({ by: ["lastPath"], where: { lastPath: { not: null }, landedAt: { gte: d7 } }, _count: { _all: true }, orderBy: { _count: { id: "desc" } }, take: 10 }),
-    prisma.visit.findMany({ where: { lastSeenAt: { gte: d1 } }, orderBy: { lastSeenAt: "desc" }, take: 20, select: { id: true, userName: true, userEmail: true, city: true, country: true, lastPath: true, lastSeenAt: true, pageviews: true, referrer: true } }),
+    prisma.visit.findMany({
+      where: {
+        lastSeenAt: { gte: d1 },
+        NOT: {
+          userAgent: {
+            contains: "bot", mode: "insensitive",
+          },
+        },
+      },
+      orderBy: { lastSeenAt: "desc" },
+      take: 30,
+      select: {
+        id: true, userName: true, userEmail: true,
+        city: true, district: true, region: true, country: true,
+        lastPath: true, lastSeenAt: true, landedAt: true,
+        pageviews: true, referrer: true, userAgent: true,
+      },
+    }),
     prisma.$queryRaw`
       SELECT DATE_TRUNC('month', "createdAt") AS month, COUNT(*)::int AS count
       FROM "User"

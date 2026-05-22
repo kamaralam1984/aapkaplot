@@ -7,9 +7,12 @@ type RecentVisit = {
   userName: string | null;
   userEmail: string | null;
   city: string | null;
+  district: string | null;
+  region: string | null;
   country: string | null;
   lastPath: string | null;
   lastSeenAt: string;
+  landedAt: string;
   pageviews: number;
   referrer: string | null;
 };
@@ -48,6 +51,27 @@ function timeAgo(iso: string): string {
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h ago`;
   return `${Math.floor(h / 24)}d ago`;
+}
+
+function duration(landedAt: string, lastSeenAt: string): string {
+  const ms = new Date(lastSeenAt).getTime() - new Date(landedAt).getTime();
+  if (ms < 0) return "—";
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  const rem = s % 60;
+  if (m < 60) return rem > 0 ? `${m}m ${rem}s` : `${m}m`;
+  const h = Math.floor(m / 60);
+  const rm = m % 60;
+  return rm > 0 ? `${h}h ${rm}m` : `${h}h`;
+}
+
+function geoLabel(v: Pick<RecentVisit, "city" | "district" | "region" | "country">): string {
+  return [v.city, v.district, v.region, v.country].filter(Boolean).join(", ") || "—";
+}
+
+function visitorName(v: Pick<RecentVisit, "userName" | "userEmail">): string {
+  return v.userName ?? v.userEmail ?? "Guest";
 }
 
 function formatInr(n: number): string {
@@ -296,16 +320,15 @@ export default function LiveDashboard() {
                 <div key={v.id} className="flex items-start justify-between gap-2 border-b border-slate-100 pb-2 last:border-0 last:pb-0">
                   <div className="min-w-0">
                     <p className="text-[12px] font-medium text-ink-900 truncate">
-                      {v.userName ?? v.userEmail ?? "Anonymous"}
+                      {visitorName(v)}
                     </p>
-                    <p className="text-[11px] text-ink-500 truncate">
-                      {[v.city, v.country].filter(Boolean).join(", ")}
-                      {v.lastPath ? ` · ${v.lastPath}` : ""}
-                    </p>
+                    <p className="text-[11px] text-ink-500 truncate">{geoLabel(v)}</p>
+                    <p className="text-[11px] text-brand-600 font-mono truncate">{v.lastPath ?? "—"}</p>
                   </div>
                   <div className="text-right shrink-0">
                     <span className="text-[11px] text-ink-500">{timeAgo(v.lastSeenAt)}</span>
-                    <p className="text-[11px] text-ink-400">{v.pageviews}pv</p>
+                    <p className="text-[11px] text-emerald-600 font-semibold">{duration(v.landedAt, v.lastSeenAt)}</p>
+                    <p className="text-[10.5px] text-ink-400">{v.pageviews}pv</p>
                   </div>
                 </div>
               ))
@@ -367,13 +390,14 @@ export default function LiveDashboard() {
       <section className="surface-card p-5">
         <h3 className="text-[13.5px] font-bold text-ink-900 mb-4">Activity Tracking — Last 24 Hours</h3>
         <div className="overflow-x-auto">
-          <table className="w-full text-[12px]">
+          <table className="w-full text-[12px] min-w-[700px]">
             <thead>
               <tr className="border-b border-slate-200">
-                <th className="py-2 pr-4 text-left text-[11px] font-semibold uppercase tracking-wider text-ink-500">User</th>
+                <th className="py-2 pr-4 text-left text-[11px] font-semibold uppercase tracking-wider text-ink-500">Visitor</th>
                 <th className="py-2 pr-4 text-left text-[11px] font-semibold uppercase tracking-wider text-ink-500">Location</th>
-                <th className="py-2 pr-4 text-left text-[11px] font-semibold uppercase tracking-wider text-ink-500">Page</th>
-                <th className="py-2 pr-4 text-right text-[11px] font-semibold uppercase tracking-wider text-ink-500">Pageviews</th>
+                <th className="py-2 pr-4 text-left text-[11px] font-semibold uppercase tracking-wider text-ink-500">Current Page</th>
+                <th className="py-2 pr-4 text-right text-[11px] font-semibold uppercase tracking-wider text-ink-500">Duration</th>
+                <th className="py-2 pr-4 text-right text-[11px] font-semibold uppercase tracking-wider text-ink-500">PVs</th>
                 <th className="py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-ink-500">Last Seen</th>
               </tr>
             </thead>
@@ -381,20 +405,23 @@ export default function LiveDashboard() {
               {data.recentActivity.map((v) => (
                 <tr key={v.id} className="hover:bg-slate-50 transition-colors">
                   <td className="py-2 pr-4">
-                    <p className="font-medium text-ink-900 truncate max-w-[140px]">
-                      {v.userName ?? v.userEmail ?? "Anonymous"}
+                    <p className="font-semibold text-ink-900 truncate max-w-[140px]">
+                      {visitorName(v)}
                     </p>
                     {v.referrer && (
                       <p className="text-[10.5px] text-ink-400 truncate max-w-[140px]">{v.referrer}</p>
                     )}
                   </td>
-                  <td className="py-2 pr-4 text-ink-600">
-                    {[v.city, v.country].filter(Boolean).join(", ") || "—"}
+                  <td className="py-2 pr-4 text-ink-600 max-w-[160px]">
+                    <span className="truncate block">{geoLabel(v)}</span>
                   </td>
                   <td className="py-2 pr-4">
-                    <span className="font-mono text-[11px] text-ink-700 truncate block max-w-[180px]">
+                    <span className="font-mono text-[11px] text-brand-700 truncate block max-w-[200px]">
                       {v.lastPath ?? "—"}
                     </span>
+                  </td>
+                  <td className="py-2 pr-4 text-right font-semibold text-emerald-700">
+                    {duration(v.landedAt, v.lastSeenAt)}
                   </td>
                   <td className="py-2 pr-4 text-right font-semibold text-ink-900">{v.pageviews}</td>
                   <td className="py-2 text-right text-ink-500">{timeAgo(v.lastSeenAt)}</td>
