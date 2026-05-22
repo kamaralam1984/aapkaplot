@@ -1,0 +1,17 @@
+export const PATNA_LOCALITIES = [
+  { slug: "boring-road",       label: "Boring Road",       blurb: "Patna ka premium residential area — banks, schools aur hospitals sab paas" },
+  { slug: "kankarbagh",        label: "Kankarbagh",        blurb: "Affordable flats aur plots — family-friendly colony with markets nearby" },
+  { slug: "bailey-road",       label: "Bailey Road",       blurb: "Patna ka busiest corridor — great connectivity aur commercial value" },
+  { slug: "rajendra-nagar",    label: "Rajendra Nagar",    blurb: "Well-planned colony — Patna University paas, peaceful residential zone" },
+  { slug: "patliputra-colony", label: "Patliputra Colony", blurb: "High-demand locality — gated societies aur wide roads" },
+  { slug: "danapur",           label: "Danapur",           blurb: "Fast-growing suburb — affordable plots with railway connectivity" },
+  { slug: "gardanibagh",       label: "Gardanibagh",       blurb: "Central Patna — mixed-use locality with good public transport" },
+  { slug: "phulwari-sharif",   label: "Phulwari Sharif",   blurb: "Budget-friendly area — Patna outskirts with growing infrastructure" },
+  { slug: "digha",             label: "Digha",             blurb: "Near Ganga ghat — plots aur houses at competitive prices" },
+  { slug: "anisabad",          label: "Anisabad",          blurb: "Well-connected locality — near Patna Junction, ideal for investment" },
+  { slug: "frazer-road",       label: "Frazer Road",       blurb: "Commercial heart of Patna — offices aur shops ka hub" },
+  { slug: "exhibition-road",   label: "Exhibition Road",   blurb: "Central Patna — government offices aur residential mix" },
+  { slug: "mithapur",          label: "Mithapur",          blurb: "Near bus stand — affordable housing with good connectivity" },
+  { slug: "pahari",            label: "Pahari",            blurb: "Quiet residential zone — near Patna Sahib gurudwara" },
+  { slug: "kadamkuan",         label: "Kadamkuan",         blurb: "Urban locality — near courts and government offices" },
+];
