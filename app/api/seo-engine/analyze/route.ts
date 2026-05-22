@@ -99,7 +99,10 @@ export async function GET(req: Request) {
   } catch {
     // ignore
   }
-  const robotsBlocksAll = robotsContent.toLowerCase().includes("disallow: /");
+  // Only flag if a line is exactly "Disallow: /" (blocks root) — not /api/ or /admin/
+  const robotsBlocksAll = robotsContent.split("\n").some((line) =>
+    /^disallow:\s*\/\s*$/i.test(line.trim())
+  );
 
   // ── 4. Check sitemap.xml ─────────────────────────────────────────────────
   let hasSitemap = false;
@@ -161,7 +164,9 @@ export async function GET(req: Request) {
   let insights: string[] = [];
   let rankProbability = Math.round(score * 0.8);
 
-  const groqPrompt = `You are an SEO expert. Given this website data: title='${title.slice(0, 120)}', description='${description.slice(0, 200)}', h1Count=${h1Count}, hasSchema=${hasSchema}, hasSitemap=${hasSitemap}, hasOG=${hasOG}, seoScore=${score}. Return ONLY valid JSON with no markdown: { "aiScore": number_0_to_100, "insights": ["insight1", "insight2"], "rankProbability": number_0_to_100 }`;
+  const groqPrompt = `SEO analysis. Reply with ONLY a JSON object, no markdown, no explanation.
+Data: title="${title.slice(0, 80)}", score=${score}/100, hasSchema=${hasSchema}, hasSitemap=${hasSitemap}, h1Count=${h1Count}
+JSON format: {"aiScore":75,"insights":["Tip 1","Tip 2"],"rankProbability":68}`;
 
   const groqRaw = await callGroq(groqPrompt);
   if (groqRaw) {
