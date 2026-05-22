@@ -1,12 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { User, Mail, Phone, MapPin, MessageCircle, Loader2, Check, Briefcase } from "lucide-react";
+import { User, Mail, Phone, MapPin, MessageCircle, Loader2, Check, Briefcase, ShieldCheck, Upload, Clock, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 
 type RoleSelectable = "buyer" | "seller" | "agent";
+type VerifStatus = "none" | "pending" | "approved" | "rejected";
+
+interface VerifState {
+  status: VerifStatus;
+  id?: string;
+}
 
 interface Initial {
   name: string;
@@ -15,6 +21,7 @@ interface Initial {
   whatsappPhone: string;
   address: string;
   role: string; // BUYER | SELLER | AGENT | ADMIN | SUPER_ADMIN
+  verif?: VerifState;
 }
 
 function prismaRoleToSelectable(role: string): RoleSelectable | null {
@@ -38,6 +45,13 @@ export function SettingsForm({ initial }: { initial: Initial }) {
   const initialRole = prismaRoleToSelectable(initial.role);
   const [role, setRole] = useState<RoleSelectable | null>(initialRole);
   const [saving, setSaving] = useState(false);
+
+  // Identity verification state
+  const [verifStatus, setVerifStatus] = useState<VerifStatus>(initial.verif?.status ?? "none");
+  const [uploading, setUploading] = useState<Record<string, boolean>>({});
+  const [docUrls, setDocUrls] = useState({ aadhaarFront: "", aadhaarBack: "", selfie: "", pan: "" });
+  const [submittingVerif, setSubmittingVerif] = useState(false);
+  const fileRefs = { aadhaarFront: useRef<HTMLInputElement>(null), aadhaarBack: useRef<HTMLInputElement>(null), selfie: useRef<HTMLInputElement>(null), pan: useRef<HTMLInputElement>(null) };
 
   const phoneDigits = phone.replace(/\D/g, "").slice(-10);
   const waDigits = whatsappPhone.replace(/\D/g, "").slice(-10);
@@ -84,6 +98,57 @@ export function SettingsForm({ initial }: { initial: Initial }) {
       toast.show({ kind: "error", title: "Couldn't save", description: (e as Error).message });
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function uploadDoc(field: keyof typeof docUrls, file: File) {
+    setUploading((u) => ({ ...u, [field]: true }));
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        setDocUrls((d) => ({ ...d, [field]: data.url }));
+        toast.show({ kind: "success", title: "Uploaded", description: file.name });
+      } else {
+        toast.show({ kind: "error", title: "Upload failed", description: data.error ?? "Try again" });
+      }
+    } catch {
+      toast.show({ kind: "error", title: "Upload failed", description: "Check your connection." });
+    } finally {
+      setUploading((u) => ({ ...u, [field]: false }));
+    }
+  }
+
+  async function submitVerification() {
+    if (!docUrls.aadhaarFront) {
+      toast.show({ kind: "warning", title: "Aadhaar front required", description: "Please upload at least the front side." });
+      return;
+    }
+    setSubmittingVerif(true);
+    try {
+      const res = await fetch("/api/verifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          aadhaarFrontUrl: docUrls.aadhaarFront,
+          ...(docUrls.aadhaarBack && { aadhaarBackUrl: docUrls.aadhaarBack }),
+          ...(docUrls.selfie && { selfieUrl: docUrls.selfie }),
+          ...(docUrls.pan && { panUrl: docUrls.pan }),
+        }),
+      });
+      if (res.ok) {
+        setVerifStatus("pending");
+        toast.show({ kind: "success", title: "Submitted!", description: "We'll review your documents within 24 hours." });
+      } else {
+        const data = await res.json();
+        toast.show({ kind: "error", title: "Submission failed", description: data.error ?? "Try again." });
+      }
+    } catch {
+      toast.show({ kind: "error", title: "Error", description: "Please try again." });
+    } finally {
+      setSubmittingVerif(false);
     }
   }
 
@@ -210,6 +275,101 @@ export function SettingsForm({ initial }: { initial: Initial }) {
             </Button>
           )}
         </footer>
+      </section>
+      {/* Identity Verification */}
+      <section className="p-5">
+        <header className="mb-4 flex items-center gap-2">
+          <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-50 text-emerald-600">
+            <ShieldCheck className="h-4 w-4" />
+          </span>
+          <div className="flex-1">
+            <h3 className="text-[14px] font-bold text-ink-900">Identity Verification</h3>
+            <p className="text-[11.5px] text-ink-500">Get a verified badge — buyers trust verified sellers more</p>
+          </div>
+          {verifStatus === "approved" && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
+              <Check className="h-3 w-3" /> Verified
+            </span>
+          )}
+          {verifStatus === "pending" && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-700">
+              <Clock className="h-3 w-3" /> Under Review
+            </span>
+          )}
+          {verifStatus === "rejected" && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-1 text-[11px] font-bold text-rose-700">
+              <XCircle className="h-3 w-3" /> Rejected
+            </span>
+          )}
+        </header>
+
+        {verifStatus === "approved" ? (
+          <p className="rounded-xl bg-emerald-50 px-4 py-3 text-[12.5px] text-emerald-700">
+            Your identity has been verified. A verified badge is shown on your profile and listings.
+          </p>
+        ) : verifStatus === "pending" ? (
+          <p className="rounded-xl bg-amber-50 px-4 py-3 text-[12.5px] text-amber-700">
+            Your documents are under review. We'll update your status within 24 hours. No action needed.
+          </p>
+        ) : (
+          <>
+            {verifStatus === "rejected" && (
+              <p className="mb-4 rounded-xl bg-rose-50 px-4 py-3 text-[12.5px] text-rose-700">
+                Your previous submission was rejected. Please re-upload clear, legible documents and resubmit.
+              </p>
+            )}
+            <div className="grid gap-3 sm:grid-cols-2">
+              {(
+                [
+                  { key: "aadhaarFront", label: "Aadhaar Front *", required: true },
+                  { key: "aadhaarBack",  label: "Aadhaar Back",    required: false },
+                  { key: "selfie",       label: "Selfie with Aadhaar", required: false },
+                  { key: "pan",          label: "PAN Card (optional)", required: false },
+                ] as const
+              ).map(({ key, label, required }) => (
+                <div key={key}>
+                  <p className="mb-1.5 text-[11.5px] font-semibold uppercase tracking-wider text-ink-500">{label}</p>
+                  <input ref={fileRefs[key]} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadDoc(key, f); }} />
+                  <button
+                    type="button"
+                    onClick={() => fileRefs[key].current?.click()}
+                    disabled={uploading[key]}
+                    className={`flex h-20 w-full flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed text-[12px] transition ${
+                      docUrls[key]
+                        ? "border-emerald-400 bg-emerald-50 text-emerald-700"
+                        : "border-ink-200 bg-ink-50 text-ink-500 hover:border-brand-400 hover:bg-brand-50"
+                    }`}
+                  >
+                    {uploading[key] ? (
+                      <Loader2 className="h-5 w-5 animate-spin text-brand-500" />
+                    ) : docUrls[key] ? (
+                      <>
+                        <Check className="h-5 w-5 text-emerald-600" />
+                        <span className="font-semibold">Uploaded</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-5 w-5" />
+                        <span>{required ? "Upload (required)" : "Upload"}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              ))}
+            </div>
+            <Button
+              variant="primary"
+              size="md"
+              className="mt-4 w-full"
+              onClick={submitVerification}
+              disabled={submittingVerif || !docUrls.aadhaarFront}
+              iconLeft={submittingVerif ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+            >
+              {submittingVerif ? "Submitting…" : "Submit for Verification"}
+            </Button>
+            <p className="mt-2 text-center text-[11px] text-ink-400">Free · Reviewed within 24 hours · Documents stored securely</p>
+          </>
+        )}
       </section>
     </div>
   );
