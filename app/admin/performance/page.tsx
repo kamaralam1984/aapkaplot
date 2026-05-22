@@ -1,6 +1,7 @@
 import { prisma } from "@/server/db";
 import { SectionHeader } from "@/components/dashboard/SectionHeader";
 import { ScanButton } from "./ScanButton";
+import { WebsiteAudit } from "./WebsiteAudit";
 
 export const dynamic = "force-dynamic";
 
@@ -68,11 +69,13 @@ export default async function PerformancePage() {
       <div className="flex items-end justify-between gap-4">
         <SectionHeader
           eyebrow="Quality"
-          title="Performance audit"
-          subtitle="Google PageSpeed Insights — desktop + mobile scores."
+          title="Website Audit & Monitor"
+          subtitle="SEO, security, performance checks + Google PageSpeed Insights."
         />
         <ScanButton />
       </div>
+
+      <WebsiteAudit />
 
       {!latestMobile && !latestDesktop && (
         <div className="surface-card p-6 text-[13.5px] text-ink-600">
