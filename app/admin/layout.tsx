@@ -52,6 +52,7 @@ export default async function AdminLayout({
         { href: "/admin/visitors",     label: "Visitors",      icon: "users" },
         { href: "/admin/revenue",      label: "Revenue",       icon: "activity" },
         { href: "/admin/database",     label: "Database",      icon: "activity" },
+        { href: "/admin/outreach",     label: "AI Outreach",   icon: "users" },
       ]}
     >
       {children}

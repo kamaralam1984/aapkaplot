@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, ListChecks, Inbox, IndianRupee, ShieldAlert, ArrowRight, Activity, LayoutDashboard, UserCheck } from "lucide-react";
+import { Users, ListChecks, Inbox, IndianRupee, ShieldAlert, ArrowRight, Activity, LayoutDashboard, UserCheck, Megaphone } from "lucide-react";
 import { SectionHeader } from "@/components/dashboard/SectionHeader";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { prisma } from "@/server/db";
@@ -29,6 +29,9 @@ export default async function AdminOverview() {
           </Link>
           <Link href="/builder/crm" className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-[13px] font-semibold text-sky-700 hover:bg-sky-100 transition-colors">
             <UserCheck className="h-4 w-4" />Builder CRM Leads<ArrowRight className="h-3.5 w-3.5 opacity-60" />
+          </Link>
+          <Link href="/admin/outreach" className="inline-flex items-center gap-2 rounded-xl border border-pink-200 bg-pink-50 px-4 py-2.5 text-[13px] font-semibold text-pink-700 hover:bg-pink-100 transition-colors">
+            <Megaphone className="h-4 w-4" />AI Outreach<ArrowRight className="h-3.5 w-3.5 opacity-60" />
           </Link>
         </div>
       </div>
@@ -139,6 +142,14 @@ export default async function AdminOverview() {
         >
           <IndianRupee className="h-4 w-4" />
           Revenue
+          <ArrowRight className="h-3.5 w-3.5 opacity-60" />
+        </Link>
+        <Link
+          href="/admin/outreach"
+          className="inline-flex items-center gap-2 rounded-xl border border-pink-200 bg-pink-50 px-4 py-2.5 text-[13px] font-semibold text-pink-700 hover:bg-pink-100 transition-colors"
+        >
+          <Megaphone className="h-4 w-4" />
+          AI Outreach
           <ArrowRight className="h-3.5 w-3.5 opacity-60" />
         </Link>
       </div>

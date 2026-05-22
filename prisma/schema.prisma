@@ -701,6 +701,34 @@ model BuilderSubscription {
   @@index([tier])
 }
 
+model OutreachProspect {
+  id              String   @id @default(cuid())
+  businessName    String
+  ownerName       String?
+  email           String   @unique
+  phone           String?
+  city            String
+  businessType    String   // builder / agent / developer / dealer
+  propertyTypes   String[] // plot / flat / commercial
+  websiteUrl      String?
+  listingCount    Int      @default(0)
+  estimatedBudget Int      @default(0) // monthly ad budget in INR
+  interestScore   Int      @default(0)  // 0-100
+  interestLabel   String   @default("cold") // cold / warm / hot / converted
+  aiReason        String?  // AI reasoning for the score
+  status          String   @default("pending") // pending / emailed / replied / converted / unsubscribed
+  emailSentAt     DateTime?
+  emailOpenedAt   DateTime?
+  repliedAt       DateTime?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status])
+  @@index([interestLabel])
+  @@index([city])
+}
+
 /// Individual payment records for builder subscriptions
 model BuilderPayment {
   id             String              @id @default(cuid())
