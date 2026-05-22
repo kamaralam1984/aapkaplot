@@ -108,8 +108,9 @@ export function SettingsForm({ initial }: { initial: Initial }) {
       fd.append("file", file);
       const res = await fetch("/api/upload", { method: "POST", body: fd });
       const data = await res.json();
-      if (res.ok && data.url) {
-        setDocUrls((d) => ({ ...d, [field]: data.url }));
+      const url = data.uploaded?.[0]?.url;
+      if (res.ok && url) {
+        setDocUrls((d) => ({ ...d, [field]: url }));
         toast.show({ kind: "success", title: "Uploaded", description: file.name });
       } else {
         toast.show({ kind: "error", title: "Upload failed", description: data.error ?? "Try again" });
