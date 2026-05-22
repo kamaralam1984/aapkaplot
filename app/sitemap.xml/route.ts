@@ -111,9 +111,7 @@ ${allUrls.join("\n")}
     headers: {
       "Content-Type": "application/xml; charset=utf-8",
       "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
-      // Explicitly clear Next.js RSC Vary headers so Google parses this as XML
       "Vary": "Accept-Encoding",
-      "X-Robots-Tag": "noindex",
     },
   });
 }
