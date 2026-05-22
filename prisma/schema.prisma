@@ -117,6 +117,7 @@ model User {
   brokerReferrals   BrokerReferral[] @relation("BrokerOfReferral")
   buyerReferrals    BrokerReferral[] @relation("BuyerOfReferral")
   commissionsEarned Commission[]
+  builderSubscription BuilderSubscription?
 }
 
 // Append to Property model — price history relation.
@@ -240,6 +241,8 @@ model Lead {
   offerAmountInr  Int?
   offerStatus     String?  // pending | accepted | declined | countered | withdrawn
   status          String   @default("new") // new | contacted | qualified | lost
+  leadScore       Int?     // 0-100 AI buyer intent score
+  buyerType       String?  // "serious" | "investor" | "urgent" | "casual" | "spam"
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -276,6 +279,9 @@ model VisitRequest {
   scheduledFor DateTime
   status       String   @default("pending") // pending | confirmed | completed | cancelled
   note         String?
+  chargeInr    Int?     // pay-per-visit charge amount (null = free)
+  chargeStatus String?  // "free" | "pending" | "paid" | "waived"
+  razorpayOrderId String? // Razorpay order for this visit charge
   createdAt    DateTime @default(now())
 
   property     Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
@@ -558,6 +564,8 @@ model Inquiry {
   aiShortlistJson Json?                    // last shortlist {propertyId, score, reason}[]
   lastFollowupAt  DateTime?
   followupCount   Int       @default(0)
+  leadScore       Int?      // 0-100 AI buyer intent score
+  buyerType       String?   // "serious" | "investor" | "urgent" | "casual" | "spam"
 
   @@index([status, createdAt])
   @@index([phone])
@@ -635,5 +643,78 @@ model SeoPage {
   @@index([lastBuiltAt])
   @@index([qualityScore])
   @@index([gscPosition])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Builder Revenue System — subscription plans & site-visit charges
+// ─────────────────────────────────────────────────────────────
+
+enum BuilderPlanTier {
+  STARTER    // ₹2999/month  — 5 listings
+  GROWTH     // ₹9999/month  — 50 listings + featured
+  DOMINATOR  // ₹49999/month — unlimited + city sponsorship
+}
+
+enum SubStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+  EXPIRED
+}
+
+model BuilderSubscription {
+  id                 String          @id @default(cuid())
+  userId             String          @unique
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tier               BuilderPlanTier
+  status             SubStatus       @default(ACTIVE)
+
+  /// Razorpay subscription ID (blank when payment is manual / offline)
+  razorpaySubId      String?
+  razorpayCustomerId String?
+
+  /// When the current billing period ends — auto-renewed by webhook
+  currentPeriodStart DateTime        @default(now())
+  currentPeriodEnd   DateTime
+
+  /// Listing cap: 5 / 50 / -1 (unlimited for DOMINATOR)
+  listingLimit       Int             @default(5)
+
+  /// City locked for DOMINATOR city-sponsorship slot
+  sponsoredCity      String?
+
+  /// Monthly charge in paise (Razorpay uses paise)
+  amountPaise        Int             @default(299900)
+
+  /// Total amount paid so far (running sum, paise)
+  lifetimePaidPaise  Int             @default(0)
+
+  cancelledAt        DateTime?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  payments           BuilderPayment[]
+
+  @@index([status, currentPeriodEnd])
+  @@index([tier])
+}
+
+/// Individual payment records for builder subscriptions
+model BuilderPayment {
+  id             String              @id @default(cuid())
+  subscriptionId String
+  subscription   BuilderSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  razorpayOrderId   String  @unique
+  razorpayPaymentId String?
+  razorpaySignature String?
+  amountPaise       Int
+  status            String  @default("created") // created | paid | failed | refunded
+  plan              String  // "STARTER" | "GROWTH" | "DOMINATOR"
+  createdAt         DateTime @default(now())
+
+  @@index([subscriptionId, createdAt])
+  @@index([status])
 }
 

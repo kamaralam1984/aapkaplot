@@ -26,6 +26,15 @@ const HomepageAdSlot = nextDynamic(() =>
 const YouTubeRail = nextDynamic(() =>
   import("@/components/home/YouTubeRail").then((m) => ({ default: m.YouTubeRail }))
 );
+const UrgencySignals = nextDynamic(() =>
+  import("@/components/home/UrgencySignals").then((m) => ({ default: m.UrgencySignals }))
+);
+const BuilderSpotlight = nextDynamic(() =>
+  import("@/components/home/BuilderSpotlight").then((m) => ({ default: m.BuilderSpotlight }))
+);
+const RecentlySold = nextDynamic(() =>
+  import("@/components/home/RecentlySold").then((m) => ({ default: m.RecentlySold }))
+);
 import { MOCK_PROPERTIES, DEFAULT_ORIGIN } from "@/lib/mock-data";
 import { withinRadius } from "@/lib/haversine";
 import { findNearby, listProperties } from "@/lib/data/properties";
@@ -86,6 +95,9 @@ export default async function HomePage() {
         {/* 2. AI Chat Assistant feature showcase */}
         <AiAssistantShowcase />
 
+        {/* Urgency social proof strip */}
+        <UrgencySignals />
+
         {/* 3. Featured Properties — Best Deals, Sponsored, Just Added rails */}
         <TopPicksStrip
           latest={latest}
@@ -107,11 +119,17 @@ export default async function HomePage() {
         {/* 5. Map & Location intelligence */}
         <MapLocationSection />
 
+        {/* Featured builders spotlight */}
+        <BuilderSpotlight />
+
         {/* AI-recommended carousel */}
         <AIRecommendations properties={aiPicks.length ? aiPicks : nearby} />
 
         {/* 6. YouTube property videos */}
         <YouTubeRail videos={videos} />
+
+        {/* Recently sold rail */}
+        <RecentlySold />
 
         {/* 8. Testimonials */}
         <TestimonialsSection />
