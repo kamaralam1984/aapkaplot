@@ -43,6 +43,12 @@ const VIRAL_TONE = {
   sky: "bg-sky-500",
 };
 
+const PROMO_TAG: Record<string, { label: string; cls: string }> = {
+  hot_nearby:  { label: "🔥 Hot Nearby",  cls: "bg-rose-500 text-white" },
+  best_deal:   { label: "🏷️ Best Deal",   cls: "bg-amber-500 text-white" },
+  featured:    { label: "⭐ Featured",     cls: "bg-violet-600 text-white" },
+};
+
 interface PropertyCardProps {
   property: Property & { distanceKm?: number };
   variant?: "default" | "compact";
@@ -167,8 +173,17 @@ export function PropertyCard({
             </div>
           )}
 
-          {/* Viral signal (top-right area, under favorite) */}
-          {viral && !showAIBadge && (
+          {/* Promotion tag (admin-set) or auto viral signal */}
+          {!showAIBadge && (property.promotionTag && PROMO_TAG[property.promotionTag] ? (
+            <span
+              className={cn(
+                "absolute left-3 top-12 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-bold shadow-soft",
+                PROMO_TAG[property.promotionTag].cls
+              )}
+            >
+              {PROMO_TAG[property.promotionTag].label}
+            </span>
+          ) : viral ? (
             <span
               className={cn(
                 "absolute left-3 top-12 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-bold text-white shadow-soft",
@@ -178,7 +193,7 @@ export function PropertyCard({
               {viral.id === "trending" && <Sparkles className="h-3 w-3" />}
               {viral.label}
             </span>
-          )}
+          ) : null)}
 
           {/* Favorite */}
           <button

@@ -51,6 +51,8 @@ export interface Property {
   trustScore: number; // 0..100
   postedAt: string; // ISO date
   badges?: AIBadge[];
+  /** Admin-set promotion tag (overrides auto viral badge when present). */
+  promotionTag?: string;
   /** Concrete amenity slugs (parking / pool / lift …) so filters can narrow. */
   amenities?: AmenityId[];
   /** Furnishing level (used by §6 furnishing filter). */

@@ -49,7 +49,7 @@ function dbToProperty(p: {
   previousPriceInr: number | null; areaSqft: number; bhk: number | null;
   locality: string; city: string; state: string; lat: number; lng: number;
   coverUrl: string; gallery: string[]; verified: boolean; trustScore: number;
-  aiBadges: string[]; createdAt: Date;
+  aiBadges: string[]; createdAt: Date; promotionTag: string | null;
 }): Property {
   return {
     id: p.id,
@@ -66,6 +66,7 @@ function dbToProperty(p: {
     trustScore: p.trustScore,
     postedAt: p.createdAt.toISOString(),
     badges: p.aiBadges as Property["badges"],
+    promotionTag: p.promotionTag ?? undefined,
   };
 }
 
@@ -112,6 +113,7 @@ export default async function PropertiesPage({
           previousPriceInr: true, areaSqft: true, bhk: true, locality: true,
           city: true, state: true, lat: true, lng: true, coverUrl: true,
           gallery: true, verified: true, trustScore: true, aiBadges: true, createdAt: true,
+          promotionTag: true,
         },
       }).then((rows) => rows.map(dbToProperty)),
       prisma.property.count({ where }),
