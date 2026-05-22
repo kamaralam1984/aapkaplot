@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, ListChecks, Inbox, IndianRupee, ShieldAlert, ArrowRight, Activity } from "lucide-react";
+import { Users, ListChecks, Inbox, IndianRupee, ShieldAlert, ArrowRight, Activity, LayoutDashboard, UserCheck } from "lucide-react";
 import { SectionHeader } from "@/components/dashboard/SectionHeader";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { prisma } from "@/server/db";
@@ -22,6 +22,14 @@ export default async function AdminOverview() {
         <SectionHeader eyebrow="Operations" title="Platform health" subtitle="DB-off mode" />
         <div className="surface-card p-6 text-[13.5px] text-rose-700">
           DB is disabled (USE_DB ≠ 1). Set USE_DB=1 in .env.local and rebuild to enable real stats.
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <Link href="/builder" className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-[13px] font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors">
+            <LayoutDashboard className="h-4 w-4" />Builder Dashboard<ArrowRight className="h-3.5 w-3.5 opacity-60" />
+          </Link>
+          <Link href="/builder/crm" className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-[13px] font-semibold text-sky-700 hover:bg-sky-100 transition-colors">
+            <UserCheck className="h-4 w-4" />Builder CRM Leads<ArrowRight className="h-3.5 w-3.5 opacity-60" />
+          </Link>
         </div>
       </div>
     );
@@ -105,6 +113,34 @@ export default async function AdminOverview() {
           icon={IndianRupee}
           tone="amber"
         />
+      </div>
+
+      {/* Builder quick links */}
+      <div className="flex flex-wrap gap-3">
+        <Link
+          href="/builder"
+          className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-[13px] font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors"
+        >
+          <LayoutDashboard className="h-4 w-4" />
+          Builder Dashboard
+          <ArrowRight className="h-3.5 w-3.5 opacity-60" />
+        </Link>
+        <Link
+          href="/builder/crm"
+          className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-[13px] font-semibold text-sky-700 hover:bg-sky-100 transition-colors"
+        >
+          <UserCheck className="h-4 w-4" />
+          Builder CRM Leads
+          <ArrowRight className="h-3.5 w-3.5 opacity-60" />
+        </Link>
+        <Link
+          href="/admin/revenue"
+          className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-[13px] font-semibold text-amber-700 hover:bg-amber-100 transition-colors"
+        >
+          <IndianRupee className="h-4 w-4" />
+          Revenue
+          <ArrowRight className="h-3.5 w-3.5 opacity-60" />
+        </Link>
       </div>
 
       <section className="grid gap-6 lg:grid-cols-2">
