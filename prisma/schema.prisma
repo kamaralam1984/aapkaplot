@@ -173,6 +173,7 @@ model Property {
   roadSouthFt  Int?
 
   featuredUntil DateTime?
+  promotionTag  String?    // "best_deal" | "hot_nearby" | "featured"
   boostedUntil  DateTime?
   allowsBrokers Boolean  @default(false)
   brokerCommissionPct Float?  // optional per-listing override; null → use broker's default

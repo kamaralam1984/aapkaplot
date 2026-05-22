@@ -11,6 +11,8 @@ import { TestimonialsSection } from "@/components/home/TestimonialsSection";
 import { LeadCaptureSection } from "@/components/home/LeadCaptureSection";
 import { StickyWhatsApp } from "@/components/layout/StickyWhatsApp";
 import { FloatingChatBot } from "@/components/layout/FloatingChatBot";
+import { BestDeals } from "@/components/home/BestDeals";
+import { HotNearby } from "@/components/home/HotNearby";
 // Below-the-fold sections — load on demand so the initial JS bundle stays
 // small. These never appear above the viewport on first paint, so deferring
 // them removes them from the LCP / INP critical path.
@@ -91,6 +93,10 @@ export default async function HomePage() {
       <main>
         {/* 1. Hero — headline + search + CTAs */}
         <Hero />
+
+        {/* Promoted property rails — powered by admin promotions system */}
+        <BestDeals />
+        <HotNearby />
 
         {/* 2. AI Chat Assistant feature showcase */}
         <AiAssistantShowcase />

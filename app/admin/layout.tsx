@@ -35,6 +35,7 @@ export default async function AdminLayout({
       nav={[
         { href: "/admin",              label: "Overview",      icon: "dashboard" },
         { href: "/admin/properties",   label: "Properties",    icon: "ads" },
+        { href: "/admin/promotions",   label: "Promotions",    icon: "ads" },
         { href: "/admin/moderation",   label: "Moderation",    icon: "shield", badge: openModeration || undefined },
         { href: "/admin/fraud",        label: "AI Fraud",      icon: "sparkles" },
         { href: "/admin/users",        label: "Users",         icon: "users" },
