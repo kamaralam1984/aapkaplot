@@ -70,32 +70,53 @@ export function SearchToolbar({ filters, total, onOpenFilters }: SearchToolbarPr
 
 function SaveSearchButton({ filters }: { filters: ParsedSearchFilters }) {
   const toast = useToast();
-  const onSave = () => {
-    const label =
-      filters.q ||
-      [filters.intent, filters.kind, filters.bhk ? `${filters.bhk} BHK` : null]
-        .filter(Boolean)
-        .join(" · ") ||
-      "Latest filters";
-    track("search_saved", { label });
-    toast.show({
-      kind: "success",
-      title: "Search saved",
-      description: `"${label}" — get notified when matching properties go live.`,
-      action: {
-        label: "View alerts",
-        onClick: () => (window.location.href = "/me/alerts"),
-      },
-    });
+  const [saving, setSaving] = useState(false);
+
+  const onSave = async () => {
+    const parts: string[] = [];
+    if (filters.bhk) parts.push(`${filters.bhk} BHK`);
+    if (filters.kind) parts.push(filters.kind.charAt(0).toUpperCase() + filters.kind.slice(1));
+    if (filters.q) parts.push(`in ${filters.q}`);
+    if (filters.budgetMax) parts.push(`under ₹${Math.round(filters.budgetMax / 100000)}L`);
+    const label = parts.length ? parts.join(" ") : "Property search";
+
+    setSaving(true);
+    try {
+      const res = await fetch("/api/alerts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ label, query: filters, frequency: "daily" }),
+      });
+      if (res.status === 401) {
+        window.location.href = "/auth/login?next=/search";
+        return;
+      }
+      if (res.ok) {
+        track("search_saved", { label });
+        toast.show({
+          kind: "success",
+          title: "Search saved",
+          description: `"${label}" — get notified when matching properties go live.`,
+        });
+      } else {
+        toast.show({ kind: "error", title: "Couldn't save search", description: "Please try again." });
+      }
+    } catch {
+      toast.show({ kind: "error", title: "Error", description: "Check your connection." });
+    } finally {
+      setSaving(false);
+    }
   };
+
   return (
     <Button
       variant="outline"
       size="sm"
       onClick={onSave}
+      disabled={saving}
       iconLeft={<Bookmark className="h-4 w-4" />}
     >
-      <span className="hidden md:inline">Save search</span>
+      <span className="hidden md:inline">{saving ? "Saving…" : "Save search"}</span>
     </Button>
   );
 }

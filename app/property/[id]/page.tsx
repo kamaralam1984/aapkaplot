@@ -24,6 +24,7 @@ import { MakeOfferModal } from "@/components/property/MakeOfferModal";
 import { NearbyRail } from "@/components/home/NearbyRail";
 import { HomeLoanBanner } from "@/components/property/HomeLoanBanner";
 import { ValuationReportButton } from "@/components/property/ValuationReportButton";
+import { PriceAlertButton } from "@/components/property/PriceAlertButton";
 
 import {
   getAllPropertyIds,
@@ -164,6 +165,43 @@ export default async function PropertyDetailPage({ params }: PageProps) {
           item: b.href ? `${siteUrl}${b.href}` : propertyUrl,
         })),
       },
+      {
+        "@type": "FAQPage",
+        mainEntity: [
+          {
+            "@type": "Question",
+            name: `${property.title} ki price kya hai?`,
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: `${property.title} ki price ${formatInr(property.priceInr)} hai — ${property.location.locality}, ${property.location.city} mein located hai. Area: ${property.areaSqft} sqft.`,
+            },
+          },
+          {
+            "@type": "Question",
+            name: `${property.location.locality} mein property kaise buy karein?`,
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: `${property.location.locality}, ${property.location.city} mein property khareedne ke liye AapKaPlot pe verified listings dekhein. Owner se seedha contact karein, site visit schedule karein aur secure payment karein.`,
+            },
+          },
+          {
+            "@type": "Question",
+            name: `Kya yeh property RERA registered hai?`,
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: `AapKaPlot pe listed sab properties verified owners dwara post ki jati hain. RERA registration ke baare mein seedha owner se puchein ya ${property.location.state} RERA portal check karein.`,
+            },
+          },
+          ...(property.intent !== "rent" ? [{
+            "@type": "Question",
+            name: `${property.title} pe home loan milega?`,
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: `Haan, ${formatInr(Math.round(property.priceInr * 0.8))} tak home loan mil sakta hai (80% LTV). SBI, HDFC aur ICICI Bank ${property.location.city} mein home loans dete hain 8.4% se shuru.`,
+            },
+          }] : []),
+        ],
+      },
     ],
   };
 
@@ -270,6 +308,7 @@ export default async function PropertyDetailPage({ params }: PageProps) {
                 />
               )}
               <ScheduleVisitForm propertyId={property.id} ownerName={property.owner.name} />
+              <PriceAlertButton propertyId={property.id} priceInr={property.priceInr} />
               {property.intent !== "rent" && (
                 <HomeLoanBanner priceInr={property.priceInr} />
               )}

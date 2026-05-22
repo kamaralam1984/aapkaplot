@@ -11,6 +11,24 @@ import { MOCK_PROPERTIES } from "@/lib/mock-data";
 import { CITY_CENTROIDS } from "@/lib/city-centroids";
 import { formatInr } from "@/lib/format";
 
+export const PATNA_LOCALITIES = [
+  { slug: "boring-road",        label: "Boring Road",        blurb: "Patna ka premium residential area — banks, schools aur hospitals sab paas" },
+  { slug: "kankarbagh",         label: "Kankarbagh",         blurb: "Affordable flats aur plots — family-friendly colony with markets nearby" },
+  { slug: "bailey-road",        label: "Bailey Road",        blurb: "Patna ka busiest corridor — great connectivity aur commercial value" },
+  { slug: "rajendra-nagar",     label: "Rajendra Nagar",     blurb: "Well-planned colony — Patna University paas, peaceful residential zone" },
+  { slug: "patliputra-colony",  label: "Patliputra Colony",  blurb: "High-demand locality — gated societies aur wide roads" },
+  { slug: "danapur",            label: "Danapur",            blurb: "Fast-growing suburb — affordable plots with railway connectivity" },
+  { slug: "gardanibagh",        label: "Gardanibagh",        blurb: "Central Patna — mixed-use locality with good public transport" },
+  { slug: "phulwari-sharif",    label: "Phulwari Sharif",    blurb: "Budget-friendly area — Patna outskirts with growing infrastructure" },
+  { slug: "digha",              label: "Digha",              blurb: "Near Ganga ghat — plots aur houses at competitive prices" },
+  { slug: "anisabad",           label: "Anisabad",           blurb: "Well-connected locality — near Patna Junction, ideal for investment" },
+  { slug: "frazer-road",        label: "Frazer Road",        blurb: "Commercial heart of Patna — offices aur shops ka hub" },
+  { slug: "exhibition-road",    label: "Exhibition Road",    blurb: "Central Patna — government offices aur residential mix" },
+  { slug: "mithapur",           label: "Mithapur",           blurb: "Near bus stand — affordable housing with good connectivity" },
+  { slug: "pahari",             label: "Pahari",             blurb: "Quiet residential zone — near Patna Sahib gurudwara" },
+  { slug: "kadamkuan",          label: "Kadamkuan",          blurb: "Urban locality — near courts and government offices" },
+];
+
 interface CityMeta {
   label: string;
   state: string;
@@ -18,6 +36,7 @@ interface CityMeta {
 }
 
 const CITY_HERO: Record<string, CityMeta> = {
+  patna:     { label: "Patna",     state: "Bihar",        blurb: "Bihar ki rajdhani Patna mein plots, flats aur ghar khojein — Boring Road se Kankarbagh tak, Bailey Road se Rajendra Nagar tak. AapKaPlot pe verified listings milein." },
   kolkata:   { label: "Kolkata",   state: "West Bengal", blurb: "From New Town's tech corridors to Sodepur's quiet streets — discover the best plots, flats and houses in Kolkata." },
   bengaluru: { label: "Bengaluru", state: "Karnataka",   blurb: "India's tech capital. Premium gated societies, gated plots and high-yield rentals across Bengaluru." },
   mumbai:    { label: "Mumbai",    state: "Maharashtra", blurb: "Sea-facing flats, suburban villas and investment plots across Mumbai's most active neighbourhoods." },
@@ -180,6 +199,31 @@ export default async function CityPage({ params }: PageProps) {
             </div>
           </Container>
         </section>
+
+        {city === "patna" && (
+          <section className="py-14 bg-ink-50/50">
+            <Container size="wide">
+              <h2 className="text-display-md font-display text-ink-900">
+                Popular Localities in Patna
+              </h2>
+              <p className="mt-1 text-[14px] text-ink-500">
+                Explore properties by neighbourhood across Patna.
+              </p>
+              <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {PATNA_LOCALITIES.map((loc) => (
+                  <Link
+                    key={loc.slug}
+                    href={`/in/patna/area/${loc.slug}`}
+                    className="block rounded-2xl border border-ink-200/70 bg-white p-4 shadow-soft transition hover:-translate-y-0.5 hover:border-brand-500/40"
+                  >
+                    <p className="text-[14px] font-bold text-ink-900">{loc.label}</p>
+                    <p className="mt-1 text-[12.5px] text-ink-500 leading-snug">{loc.blurb}</p>
+                  </Link>
+                ))}
+              </div>
+            </Container>
+          </section>
+        )}
 
         {/* Why this city */}
         <section className="bg-white py-14">

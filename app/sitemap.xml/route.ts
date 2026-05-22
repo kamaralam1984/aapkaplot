@@ -55,6 +55,14 @@ export async function GET() {
   const cityKindUrls = cities.flatMap((c) =>
     cityKinds.map((k) => url(`${BASE}/in/${c}/${k}`, now, "daily", 0.75))
   );
+  const patnaLocalitySlugs = [
+    "boring-road", "kankarbagh", "bailey-road", "rajendra-nagar",
+    "patliputra-colony", "danapur", "gardanibagh", "phulwari-sharif",
+    "digha", "anisabad", "frazer-road", "exhibition-road", "mithapur",
+  ];
+  const patnaLocalityUrls = patnaLocalitySlugs.map((l) =>
+    url(`${BASE}/in/patna/area/${l}`, now, "weekly", 0.7)
+  );
   const projectUrls = MOCK_PROJECTS.map((p) =>
     url(`${BASE}/in/${p.city.toLowerCase()}/projects/${p.slug}`, now, "weekly", 0.72)
   );
@@ -103,7 +111,7 @@ export async function GET() {
 
   const allUrls = [
     ...staticUrls, ...searchUrls, ...cityUrls, ...cityKindUrls,
-    ...projectUrls, ...localityUrls, ...propertyUrls, ...seoUrls,
+    ...patnaLocalityUrls, ...projectUrls, ...localityUrls, ...propertyUrls, ...seoUrls,
   ];
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>

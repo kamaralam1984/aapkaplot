@@ -16,6 +16,15 @@ import { formatInr } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
+export async function generateStaticParams() {
+  const patnaLocalities = [
+    "boring-road", "kankarbagh", "bailey-road", "rajendra-nagar",
+    "patliputra-colony", "danapur", "gardanibagh", "phulwari-sharif",
+    "digha", "anisabad", "frazer-road", "exhibition-road", "mithapur", "pahari", "kadamkuan",
+  ];
+  return patnaLocalities.map((locality) => ({ city: "patna", locality }));
+}
+
 interface PageProps {
   params: Promise<{ city: string; locality: string }>;
 }
