@@ -1,5 +1,4 @@
 import { prisma } from "@/server/db";
-import { importOptional } from "@/lib/optional-import";
 
 export type BuyerType = "serious" | "investor" | "urgent" | "casual" | "spam";
 
@@ -67,30 +66,36 @@ export async function aiRefine(
   baseScore: number,
   signals: string[],
 ): Promise<{ score: number; signals: string[] }> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return { score: baseScore, signals };
 
   try {
-    const mod = await importOptional("@anthropic-ai/sdk");
-    if (!mod) return { score: baseScore, signals };
-    const Anthropic = mod.default ?? mod;
-    const client = new Anthropic({ apiKey });
+    const prompt =
+      `You are a real estate lead quality analyst for AapKaPlot, an Indian property platform.\n` +
+      `Return JSON only: {"adjustment": integer -15 to +15, "signal": short string or null}\n` +
+      `Name: ${data.name}, Budget: ${data.budget ? data.budget + "L" : "?"}, Location: ${data.location || "?"}, ` +
+      `Message: ${data.message || "none"}, Source: ${data.source ?? "homepage"}, Base score: ${baseScore}/100`;
 
-    const prompt = [
-      "You are a real estate lead quality analyst for AapKaPlot, an Indian property platform.",
-      'Return JSON: {"adjustment": integer -15 to +15, "signal": short string or null}',
-      `Name: ${data.name}, Budget: ${data.budget ? data.budget + "L" : "?"}, Location: ${data.location || "?"}, Message: ${data.message || "none"}, Source: ${data.source ?? "homepage"}, Base: ${baseScore}/100`,
-      "Return only the JSON object.",
-    ].join("\n");
-
-    const response = await client.messages.create({
-      model: "claude-haiku-4-5",
-      max_tokens: 80,
-      messages: [{ role: "user", content: prompt }],
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "llama3-8b-8192",
+        max_tokens: 80,
+        temperature: 0,
+        messages: [{ role: "user", content: prompt }],
+      }),
+      signal: AbortSignal.timeout(8000),
     });
 
-    const text = response.content[0]?.type === "text" ? response.content[0].text : "";
-    const parsed = JSON.parse(text.trim());
+    if (!res.ok) return { score: baseScore, signals };
+
+    const json = await res.json() as { choices: { message: { content: string } }[] };
+    const text = json.choices?.[0]?.message?.content ?? "";
+    const parsed = JSON.parse(text.trim()) as { adjustment?: number; signal?: string | null };
     const adjustment = typeof parsed.adjustment === "number"
       ? Math.max(-15, Math.min(15, parsed.adjustment))
       : 0;

@@ -26,6 +26,7 @@ const ENV_WRITE_ALLOWLIST = new Set([
   "RAZORPAY_KEY_SECRET",
   "RAZORPAY_WEBHOOK_SECRET",
   "NEXT_PUBLIC_RAZORPAY_KEY_ID",
+  "GROQ_API_KEY",
 ]);
 
 function upsertEnvFile(path: string, updates: Record<string, string>): { replaced: string[]; added: string[] } {
