@@ -118,6 +118,7 @@ model User {
   buyerReferrals    BrokerReferral[] @relation("BuyerOfReferral")
   commissionsEarned Commission[]
   builderSubscription BuilderSubscription?
+  microPayments       MicroPayment[]
 }
 
 // Append to Property model — price history relation.
@@ -747,3 +748,21 @@ model BuilderPayment {
   @@index([status])
 }
 
+
+/// One-off micro-payments: lead reveals, listing boosts, valuation PDFs
+model MicroPayment {
+  id                String   @id @default(cuid())
+  userId            String
+  type              String   // LEAD_REVEAL | BOOST_7 | BOOST_30 | VALUATION
+  propertyId        String?
+  razorpayOrderId   String   @unique
+  razorpayPaymentId String?
+  amountPaise       Int
+  status            String   @default("paid")
+  createdAt         DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@index([propertyId])
+}

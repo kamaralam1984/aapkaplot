@@ -22,6 +22,8 @@ import { EMICalculator } from "@/components/property/EMICalculator";
 import { PropertyReviews } from "@/components/property/PropertyReviews";
 import { MakeOfferModal } from "@/components/property/MakeOfferModal";
 import { NearbyRail } from "@/components/home/NearbyRail";
+import { HomeLoanBanner } from "@/components/property/HomeLoanBanner";
+import { ValuationReportButton } from "@/components/property/ValuationReportButton";
 
 import {
   getAllPropertyIds,
@@ -268,6 +270,15 @@ export default async function PropertyDetailPage({ params }: PageProps) {
                 />
               )}
               <ScheduleVisitForm propertyId={property.id} ownerName={property.owner.name} />
+              {property.intent !== "rent" && (
+                <HomeLoanBanner priceInr={property.priceInr} />
+              )}
+              <ValuationReportButton
+                propertyId={property.id}
+                priceInr={property.priceInr}
+                locality={property.location.locality}
+                city={property.location.city}
+              />
             </aside>
           </div>
         </Container>
