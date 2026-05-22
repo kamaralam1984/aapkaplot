@@ -13,9 +13,12 @@ function xmlEscape(s: string) {
 function url(loc: string, lastmod?: Date | string, changefreq?: string, priority?: number, images?: string[]) {
   const mod = lastmod ? `\n  <lastmod>${new Date(lastmod).toISOString()}</lastmod>` : "";
   const freq = changefreq ? `\n  <changefreq>${changefreq}</changefreq>` : "";
-  const pri = priority !== undefined ? `\n  <priority>${priority}</priority>` : "";
+  const pri = priority !== undefined ? `\n  <priority>${Math.round(priority * 1000) / 1000}</priority>` : "";
   const imgs = images?.length
-    ? images.map((img) => `\n  <image:image><image:loc>${xmlEscape(img)}</image:loc></image:image>`).join("")
+    ? images.map((img) => {
+        const abs = img.startsWith("http") ? img : `${BASE}${img.startsWith("/") ? "" : "/"}${img}`;
+        return `\n  <image:image><image:loc>${xmlEscape(abs)}</image:loc></image:image>`;
+      }).join("")
     : "";
   return `<url>\n  <loc>${xmlEscape(loc)}</loc>${mod}${freq}${pri}${imgs}\n</url>`;
 }
