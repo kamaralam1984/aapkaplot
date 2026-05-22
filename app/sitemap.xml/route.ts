@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { MOCK_PROJECTS } from "@/lib/mock-projects";
 import { prisma } from "@/server/db";
 
@@ -106,12 +105,11 @@ export async function GET() {
 ${allUrls.join("\n")}
 </urlset>`;
 
-  return new NextResponse(xml, {
+  return new Response(xml, {
     status: 200,
     headers: {
       "Content-Type": "application/xml; charset=utf-8",
       "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
-      "Vary": "Accept-Encoding",
     },
   });
 }
