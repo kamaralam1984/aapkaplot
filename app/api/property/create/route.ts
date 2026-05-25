@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth-server";
 import { prisma } from "@/server/db";
 import { syncGeom } from "@/server/property/geo";
 import { CITY_CENTROIDS, DEFAULT_CENTROID } from "@/lib/city-centroids";
+import { computeTrustScore } from "@/lib/trust-score";
 
 export const runtime = "nodejs";
 
@@ -80,6 +81,30 @@ export async function POST(req: Request) {
 
   const [cover, ...rest] = d.photos;
 
+  const owner = await prisma.user.findUnique({
+    where: { id: session.uid },
+    select: { aadhaarVerified: true },
+  }).catch(() => null);
+
+  const trustScore = computeTrustScore({
+    ownerAadhaarVerified: !!owner?.aadhaarVerified,
+    adminVerified: false,
+    coverUrl: cover.url,
+    galleryCount: rest.length,
+    hasVideo: false,
+    hasYoutube: !!d.youtubeUrl,
+    hasTour: !!d.tourUrl,
+    hasBoundary: !!d.boundary,
+    descriptionLength: (d.description || "").length,
+    hasCoords: d.lat != null && d.lng != null,
+    hasPincode: !!d.pincode,
+    amenitiesCount: d.amenities.length,
+    priceInr: d.priceInr,
+    areaSqft: d.areaSqft ?? 0,
+    bhk: d.bhk ?? null,
+    kind: d.kind,
+  });
+
   try {
     const created = await prisma.property.create({
       data: {
@@ -103,6 +128,7 @@ export async function POST(req: Request) {
         tourUrl: d.tourUrl ?? null,
         amenities: d.amenities,
         aiBadges: [],
+        trustScore,
         allowsBrokers: d.allowsBrokers ?? false,
         brokerCommissionPct: d.brokerCommissionPct ?? null,
         ownerId: session.uid,

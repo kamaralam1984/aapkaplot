@@ -8,6 +8,7 @@
  */
 import { prisma } from "@/server/db";
 import type { PropertyDetail, PropertyKind, ListingIntent, AmenityId } from "@/lib/types";
+import { computeTrustScore } from "@/lib/trust-score";
 
 const KIND_TO_LOWER: Record<string, PropertyKind> = {
   PLOT: "plot", FLAT: "flat", HOUSE: "house", VILLA: "villa",
@@ -32,6 +33,70 @@ export async function loadPropertyDetailFromDb(id: string): Promise<PropertyDeta
   const owner = r.owner;
   const verifiedOwner = !!owner.aadhaarVerified;
 
+  const trustScore = r.trustScore > 0 ? r.trustScore : computeTrustScore({
+    ownerAadhaarVerified: verifiedOwner,
+    adminVerified: r.verified,
+    coverUrl: r.coverUrl,
+    galleryCount: r.gallery?.length ?? 0,
+    hasVideo: !!r.videoUrl,
+    hasYoutube: !!r.youtubeUrl,
+    hasTour: !!r.tourUrl,
+    hasBoundary: !!r.boundary,
+    descriptionLength: (r.description ?? "").length,
+    hasCoords: r.lat != null && r.lng != null,
+    hasPincode: !!r.pincode,
+    amenitiesCount: (r.amenities as string[] | null)?.length ?? 0,
+    priceInr: r.priceInr,
+    areaSqft: r.areaSqft,
+    bhk: r.bhk,
+    kind: r.kind,
+  });
+
+  const comparables = await prisma.property.findMany({
+    where: {
+      id: { not: r.id },
+      kind: r.kind,
+      intent: r.intent,
+      city: r.city,
+      OR: [{ locality: r.locality }, { locality: { contains: r.locality, mode: "insensitive" } }],
+      areaSqft: { gt: 0 },
+      priceInr: { gt: 0 },
+    },
+    select: { priceInr: true, areaSqft: true },
+    take: 50,
+  }).catch(() => [] as { priceInr: number; areaSqft: number }[]);
+
+  let areaPricePerSqft = pricePerSqft;
+  if (comparables.length >= 3) {
+    const rates = comparables.map((c) => c.priceInr / Math.max(1, c.areaSqft)).sort((a, b) => a - b);
+    const trimmed = rates.slice(Math.floor(rates.length * 0.1), Math.ceil(rates.length * 0.9));
+    const avg = trimmed.reduce((s, v) => s + v, 0) / trimmed.length;
+    areaPricePerSqft = Math.round(avg);
+  } else {
+    const cityComps = await prisma.property.findMany({
+      where: {
+        id: { not: r.id },
+        kind: r.kind,
+        intent: r.intent,
+        city: r.city,
+        areaSqft: { gt: 0 },
+        priceInr: { gt: 0 },
+      },
+      select: { priceInr: true, areaSqft: true },
+      take: 100,
+    }).catch(() => [] as { priceInr: number; areaSqft: number }[]);
+    if (cityComps.length >= 3) {
+      const rates = cityComps.map((c) => c.priceInr / Math.max(1, c.areaSqft)).sort((a, b) => a - b);
+      const trimmed = rates.slice(Math.floor(rates.length * 0.1), Math.ceil(rates.length * 0.9));
+      areaPricePerSqft = Math.round(trimmed.reduce((s, v) => s + v, 0) / trimmed.length);
+    }
+  }
+
+  const priceVsArea: "below" | "fair" | "above" =
+    pricePerSqft < areaPricePerSqft * 0.97 ? "below"
+    : pricePerSqft > areaPricePerSqft * 1.03 ? "above"
+    : "fair";
+
   return {
     id: r.id,
     title: r.title,
@@ -54,7 +119,7 @@ export async function loadPropertyDetailFromDb(id: string): Promise<PropertyDeta
       satellite: r.satelliteUrl ?? undefined,
     },
     verified: r.verified || verifiedOwner,
-    trustScore: r.trustScore,
+    trustScore,
     postedAt: r.createdAt.toISOString(),
     badges: (r.aiBadges as PropertyDetail["badges"]) ?? [],
     amenities: (r.amenities as AmenityId[]) ?? [],
@@ -77,11 +142,11 @@ export async function loadPropertyDetailFromDb(id: string): Promise<PropertyDeta
     },
     nearby: [],
     insights: {
-      trustScore: r.trustScore,
-      investmentScore: Math.min(95, 50 + Math.round(r.trustScore / 3)),
-      priceVsArea: "fair",
+      trustScore,
+      investmentScore: Math.min(95, 50 + Math.round(trustScore / 3)),
+      priceVsArea,
       pricePerSqft,
-      areaPricePerSqft: pricePerSqft,
+      areaPricePerSqft,
       monthlyTrend: [],
       highlights: r.description
         ? [r.description.slice(0, 120)]
