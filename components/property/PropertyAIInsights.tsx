@@ -19,6 +19,7 @@ export function PropertyAIInsights({ insights }: PropertyAIInsightsProps) {
   const delta = first ? ((last - first) / first) * 100 : 0;
   const trendUp = delta >= 0;
 
+  const hasComparable = areaPricePerSqft > 0 && areaPricePerSqft !== pricePerSqft;
   const verdictLabel =
     priceVsArea === "below" ? "Below area average" :
     priceVsArea === "above" ? "Above area average" : "Fairly priced";
@@ -68,12 +69,20 @@ export function PropertyAIInsights({ insights }: PropertyAIInsightsProps) {
               ₹{pricePerSqft.toLocaleString("en-IN")}
               <span className="text-[13px] font-medium text-ink-500"> /sqft</span>
             </p>
-            <p className="mt-1 text-[12.5px] text-ink-500">
-              Area avg: ₹{areaPricePerSqft.toLocaleString("en-IN")} /sqft
-            </p>
-            <span className={cn("mt-2 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold", verdictTone)}>
-              {verdictLabel}
-            </span>
+            {hasComparable ? (
+              <>
+                <p className="mt-1 text-[12.5px] text-ink-500">
+                  Area avg: ₹{areaPricePerSqft.toLocaleString("en-IN")} /sqft
+                </p>
+                <span className={cn("mt-2 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold", verdictTone)}>
+                  {verdictLabel}
+                </span>
+              </>
+            ) : (
+              <p className="mt-1 text-[12.5px] text-ink-500">
+                Naye locality ke liye comparable data abhi kam hai
+              </p>
+            )}
           </div>
 
           {/* Sparkline */}
