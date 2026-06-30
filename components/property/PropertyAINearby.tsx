@@ -1,13 +1,24 @@
 import {
   Sparkles, Train, TrainFront, Plane, Hospital, School, GraduationCap,
   ShoppingBag, ShoppingCart, Utensils, Banknote, CreditCard, Shield,
-  Fuel, Trees, Landmark, Building2,
+  Fuel, Trees, Landmark, Building2, Bus, Star, Store, MapPinned,
 } from "lucide-react";
 import { fetchPropertyPois, type PoiCategory, type Poi, CATEGORY_ORDER, poiDistanceLabel } from "@/lib/property-poi";
+import { NearbyCustomEditor } from "./NearbyCustomEditor";
+
+interface CustomEntry {
+  id: string;
+  name: string;
+  category: PoiCategory;
+  distanceKm: number;
+}
 
 interface PropertyAINearbyProps {
   lat: number;
   lng: number;
+  propertyId?: string;
+  nearbyCustom?: CustomEntry[];
+  canEdit?: boolean;
 }
 
 const META: Record<PoiCategory, { label: string; icon: React.ReactNode; tone: string }> = {
@@ -27,37 +38,85 @@ const META: Record<PoiCategory, { label: string; icon: React.ReactNode; tone: st
   park:         { label: "Parks",           icon: <Trees className="h-4 w-4" />,        tone: "bg-emerald-50 text-emerald-700" },
   tourism:      { label: "Tourist spots",   icon: <Building2 className="h-4 w-4" />,    tone: "bg-sky-50 text-sky-700" },
   historical:   { label: "Heritage",        icon: <Landmark className="h-4 w-4" />,     tone: "bg-amber-50 text-amber-700" },
+  bus_stop:     { label: "Bus stops",       icon: <Bus className="h-4 w-4" />,          tone: "bg-sky-50 text-sky-700" },
+  place_of_worship: { label: "Temples / Mosque / Church", icon: <Star className="h-4 w-4" />, tone: "bg-orange-50 text-orange-700" },
+  market:       { label: "Markets / Bazaar", icon: <Store className="h-4 w-4" />,       tone: "bg-amber-50 text-amber-700" },
 };
 
-/**
- * Server component — fetches Overpass POIs around the property's lat/lng
- * and renders a category grid + AI-generated marketing highlights.
- *
- * Runs on every render but the underlying fetcher is heavily cached
- * (in-memory + 30-day Postgres row), so SSR latency is ~5-25 ms for warm
- * lookups, ~3-15 s on first hit for a new bucket.
- */
-export async function PropertyAINearby({ lat, lng }: PropertyAINearbyProps) {
+/** Convert custom entries to display Poi objects (marked with isCustom). */
+function toCustomPois(entries: CustomEntry[]): (Poi & { isCustom: true })[] {
+  return entries.map((e) => ({
+    id: `custom-${e.id}`,
+    name: e.name,
+    category: e.category,
+    lat: 0,
+    lng: 0,
+    distanceKm: e.distanceKm,
+    distanceType: "road" as const,
+    isCustom: true as const,
+  }));
+}
+
+export async function PropertyAINearby({ lat, lng, propertyId, nearbyCustom, canEdit }: PropertyAINearbyProps) {
+  console.log("[PropertyAINearby]", { canEdit, propertyId });
   const bundle = await fetchPropertyPois(lat, lng).catch(() => null);
+
+  const customPois = toCustomPois(nearbyCustom ?? []);
+
+  // Merge custom entries into byCategory (custom first, then OSM)
+  function buildMergedByCategory(osmByCategory: Record<string, (Poi & { isCustom?: boolean })[]>) {
+    const merged: Record<string, (Poi & { isCustom?: boolean })[]> = { ...osmByCategory };
+    for (const cp of customPois) {
+      if (!merged[cp.category]) merged[cp.category] = [];
+      // Prepend custom entries so they appear at top of their category
+      merged[cp.category] = [cp, ...merged[cp.category]];
+    }
+    return merged;
+  }
+
+  // Categories that have data (OSM + custom)
+  function getPresentCats(byCategory: Record<string, unknown[]>) {
+    return CATEGORY_ORDER.filter((c) => byCategory[c]?.length);
+  }
+
   if (!bundle || bundle.items.length === 0) {
+    // No OSM data — still show custom entries if any
+    const customByCategory = buildMergedByCategory({});
+    const customCats = getPresentCats(customByCategory);
+
     return (
       <section className="surface-card overflow-hidden">
-        <header className="flex items-center gap-3 border-b border-ink-200/70 bg-white/60 p-4">
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-violet-50 text-violet-700">
+        <header className="flex items-start gap-3 border-b border-ink-200/70 bg-white/60 p-4">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-violet-50 text-violet-700">
             <Sparkles className="h-[18px] w-[18px]" />
           </span>
-          <div>
-            <h3 className="text-[15px] font-bold text-ink-900">What's around</h3>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              {canEdit && propertyId && (
+                <NearbyCustomEditor propertyId={propertyId} initial={nearbyCustom ?? []} />
+              )}
+              <h3 className="text-[15px] font-bold text-ink-900">What's around</h3>
+            </div>
             <p className="text-[12.5px] text-ink-500">
-              We couldn't pull OpenStreetMap data for this location right now. Try refreshing in a minute.
+              {customCats.length > 0
+                ? "OpenStreetMap data unavailable — showing manually added places only."
+                : "We couldn't pull OpenStreetMap data for this location right now. Try refreshing in a minute."}
             </p>
           </div>
         </header>
+        {customCats.length > 0 && (
+          <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
+            {customCats.map((cat) => (
+              <CategoryCard key={cat} cat={cat} list={customByCategory[cat]!} />
+            ))}
+          </div>
+        )}
       </section>
     );
   }
 
-  const presentCats = CATEGORY_ORDER.filter((c) => bundle.byCategory[c]?.length);
+  const mergedByCategory = buildMergedByCategory(bundle.byCategory as Record<string, Poi[]>);
+  const presentCats = getPresentCats(mergedByCategory);
 
   return (
     <section className="surface-card overflow-hidden">
@@ -66,14 +125,20 @@ export async function PropertyAINearby({ lat, lng }: PropertyAINearbyProps) {
           <Sparkles className="h-[18px] w-[18px]" />
         </span>
         <div className="min-w-0 flex-1">
-          <h3 className="text-[15px] font-bold text-ink-900">What's around · AI nearby</h3>
+          <div className="flex flex-wrap items-center gap-2">
+            {canEdit && propertyId && (
+              <NearbyCustomEditor propertyId={propertyId} initial={nearbyCustom ?? []} />
+            )}
+            <h3 className="text-[15px] font-bold text-ink-900">What's around · AI nearby</h3>
+          </div>
           <p className="text-[12.5px] text-ink-500">
             Auto-detected from OpenStreetMap · {bundle.items.length} landmarks · driving distance via OSRM · refreshed {new Date(bundle.fetchedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
             {bundle.source === "cache" && " (cached)"}
+            {customPois.length > 0 && ` · ${customPois.length} manually added`}
           </p>
           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-ink-500">
             <span>
-              Distances measured from pinned location{" "}
+              Distances from{" "}
               <span className="font-mono font-semibold text-ink-700">
                 {lat.toFixed(4)}°N, {lng.toFixed(4)}°E
               </span>
@@ -84,7 +149,7 @@ export async function PropertyAINearby({ lat, lng }: PropertyAINearbyProps) {
               rel="noopener noreferrer"
               className="font-semibold text-violet-700 underline-offset-2 hover:underline"
             >
-              View pin on map ↗
+              View on map ↗
             </a>
             <a
               href={`https://www.google.com/maps?q=${lat},${lng}`}
@@ -92,11 +157,13 @@ export async function PropertyAINearby({ lat, lng }: PropertyAINearbyProps) {
               rel="noopener noreferrer"
               className="font-semibold text-violet-700 underline-offset-2 hover:underline"
             >
-              Open in Google Maps ↗
+              Google Maps ↗
             </a>
           </div>
           <p className="mt-1 text-[11px] text-ink-400">
-            By road via OSRM. <span className="font-semibold">≈</span> means straight-line (used when routing is unavailable). If the pin looks wrong, edit the listing to move it.
+            By road via OSRM. <span className="font-semibold">≈</span> means straight-line fallback.
+            {customPois.length > 0 && " · "}
+            {customPois.length > 0 && <span className="inline-flex items-center gap-0.5"><MapPinned className="inline h-3 w-3" /> = manually added by owner.</span>}
           </p>
         </div>
       </header>
@@ -118,43 +185,49 @@ export async function PropertyAINearby({ lat, lng }: PropertyAINearbyProps) {
       )}
 
       <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
-        {presentCats.map((cat) => {
-          const meta = META[cat];
-          const list = bundle.byCategory[cat]!;
-          return (
-            <div key={cat} className="rounded-2xl border border-ink-200/70 bg-white p-3.5">
-              <div className="mb-2 inline-flex items-center gap-1.5">
-                <span className={`grid h-8 w-8 place-items-center rounded-lg ${meta.tone}`}>
-                  {meta.icon}
-                </span>
-                <p className="text-[13px] font-bold text-ink-900">{meta.label}</p>
-                <span className="ml-auto rounded-full bg-ink-100 px-1.5 py-0.5 text-[10px] font-semibold text-ink-600">
-                  {list.length}
-                </span>
-              </div>
-              <ul className="space-y-1.5">
-                {list.map((p) => (
-                  <PoiRow key={p.id} poi={p} />
-                ))}
-              </ul>
-            </div>
-          );
-        })}
+        {presentCats.map((cat) => (
+          <CategoryCard key={cat} cat={cat} list={mergedByCategory[cat]!} />
+        ))}
       </div>
     </section>
   );
 }
 
-function PoiRow({ poi }: { poi: Poi }) {
+function CategoryCard({ cat, list }: { cat: PoiCategory; list: (Poi & { isCustom?: boolean })[] }) {
+  const meta = META[cat];
+  return (
+    <div className="rounded-2xl border border-ink-200/70 bg-white p-3.5">
+      <div className="mb-2 flex items-center gap-1.5">
+        <span className={`grid h-8 w-8 place-items-center rounded-lg ${meta.tone}`}>
+          {meta.icon}
+        </span>
+        <p className="text-[13px] font-bold text-ink-900">{meta.label}</p>
+        <span className="ml-auto rounded-full bg-ink-100 px-1.5 py-0.5 text-[10px] font-semibold text-ink-600">
+          {list.length}
+        </span>
+      </div>
+      <ul className="space-y-1.5">
+        {list.map((p) => (
+          <PoiRow key={p.id} poi={p} />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function PoiRow({ poi }: { poi: Poi & { isCustom?: boolean } }) {
   const isStraight = poi.distanceType === "straight";
   return (
     <li className="flex items-center justify-between gap-2 text-[12.5px]">
-      <span className="min-w-0 truncate text-ink-700">{poi.name}</span>
+      <span className="flex min-w-0 items-center gap-1 truncate text-ink-700">
+        {poi.isCustom && <MapPinned className="h-3 w-3 shrink-0 text-violet-500" aria-label="Manually added by owner" />}
+        <span className="truncate">{poi.name}</span>
+      </span>
       <span
         className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10.5px] font-bold ${
-          isStraight ? "bg-ink-100 text-ink-600" : "bg-emerald-50 text-emerald-700"
+          poi.isCustom ? "bg-violet-50 text-violet-700" : isStraight ? "bg-ink-100 text-ink-600" : "bg-emerald-50 text-emerald-700"
         }`}
-        title={isStraight ? "Straight-line distance (driving route unavailable)" : "Driving distance via OSRM"}
+        title={poi.isCustom ? "Manually added distance" : isStraight ? "Straight-line (driving route unavailable)" : "Driving distance via OSRM"}
       >
         {poiDistanceLabel(poi)}
       </span>
