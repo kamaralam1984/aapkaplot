@@ -22,7 +22,8 @@ export type PoiCategory =
   | "hospital" | "school" | "college"
   | "mall" | "supermarket" | "restaurant"
   | "bank" | "atm" | "police" | "fuel"
-  | "park" | "historical" | "tourism";
+  | "park" | "historical" | "tourism"
+  | "bus_stop" | "place_of_worship" | "market";
 
 export interface Poi {
   id: string;            // overpass element id
@@ -55,6 +56,7 @@ const OSRM_TABLE = "https://router.project-osrm.org/table/v1/driving";
 // towns is patchy — a local police chowki two streets away may not be
 // mapped, so we have to look further to find the closest tagged node.
 const RADIUS_M = 15000;
+const MAX_DISPLAY_KM = 30;
 const CACHE_TTL_DAYS = 30;
 // OSRM public server is generous but not unlimited. Cap one batch at 25 so a
 // single property load never blocks the table for other users.
@@ -148,6 +150,16 @@ function buildQuery(lat: number, lng: number): string {
   node(around:${huge},${lat},${lng})[tourism=attraction];
   node(around:${huge},${lat},${lng})[tourism=viewpoint];
   node(around:${huge},${lat},${lng})[historic];
+  // Bus stops + stands.
+  node(around:${r},${lat},${lng})[highway=bus_stop];
+  node(around:${r},${lat},${lng})[amenity=bus_station];
+  // Places of worship — temple, mosque, church, gurudwara.
+  node(around:${r},${lat},${lng})[amenity=place_of_worship];
+  way (around:${r},${lat},${lng})[amenity=place_of_worship];
+  // Markets + bazaars.
+  node(around:${r},${lat},${lng})[amenity=marketplace];
+  node(around:${r},${lat},${lng})[shop=market];
+  way (around:${r},${lat},${lng})[amenity=marketplace];
 );
 out tags center 800;`;
 }
@@ -218,15 +230,21 @@ function classify(tags: Record<string, string>): PoiCategory | null {
     tags.tourism === "viewpoint"
   ) return "tourism";
   if (tags.historic) return "historical";
+  // Bus stops + stands.
+  if (tags.highway === "bus_stop" || tags.amenity === "bus_station") return "bus_stop";
+  // Places of worship.
+  if (tags.amenity === "place_of_worship") return "place_of_worship";
+  // Markets + bazaars.
+  if (tags.amenity === "marketplace" || tags.shop === "market") return "market";
   return null;
 }
 
 const CATEGORY_ORDER: PoiCategory[] = [
-  "metro", "railway", "airport",
+  "metro", "railway", "airport", "bus_stop",
   "hospital", "school", "college",
-  "mall", "supermarket", "restaurant",
+  "mall", "supermarket", "restaurant", "market",
   "bank", "atm", "police", "fuel",
-  "park", "tourism", "historical",
+  "park", "place_of_worship", "tourism", "historical",
 ];
 
 function poiDistanceLabel(p: Poi): string {
@@ -384,6 +402,8 @@ export async function fetchPropertyPois(lat: number, lng: number): Promise<Prope
   if (items.length > 0) {
     items = await annotateRoadDistances({ lat, lng }, items);
     items.sort((a, b) => a.distanceKm - b.distanceKm);
+    // Only show POIs within 30 km — beyond that they aren't useful for buyers.
+    items = items.filter((p) => p.distanceKm <= MAX_DISPLAY_KM);
   }
 
   // Group top-3 by category, deduping by lowercase name. OSM frequently has

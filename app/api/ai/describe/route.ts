@@ -6,8 +6,8 @@ const Body = z.object({
   kind: z.enum(["plot", "flat", "house", "villa", "shop", "office", "warehouse", "agriculture"]),
   intent: z.enum(["buy", "rent"]).default("buy"),
   title: z.string().min(2).max(120),
-  locality: z.string().min(2).max(80),
-  city: z.string().min(2).max(80),
+  locality: z.string().min(2).max(80).optional(),
+  city: z.string().min(2).max(80).optional(),
   state: z.string().optional(),
   bhk: z.number().int().min(0).max(10).optional(),
   areaSqft: z.number().int().min(50).max(50_000).optional(),
@@ -176,7 +176,7 @@ function buildPrompt(p: Input): string {
     `Write a property listing description for AapKaPlot.`,
     `Title: ${p.title}`,
     `Kind: ${p.kind} (${p.intent})`,
-    `Location: ${p.locality}, ${p.city}${p.state ? ", " + p.state : ""}`,
+    ...(p.locality || p.city ? [`Location: ${[p.locality, p.city, p.state].filter(Boolean).join(", ")}`] : []),
   ];
   if (p.bhk) lines.push(`BHK: ${p.bhk}`);
   if (p.areaSqft) lines.push(`Carpet area: ${p.areaSqft} sqft`);
@@ -199,25 +199,25 @@ function buildPrompt(p: Input): string {
 
 const TEMPLATES: ((p: Input) => string)[] = [
   (p) =>
-    `Welcome to this ${describeKind(p)} in ${p.locality}, ${p.city}. ${areaLine(p)} ` +
+    `Welcome to this ${describeKind(p)}${p.locality ? ` in ${p.locality}` : ""}${p.city ? `, ${p.city}` : ""}. ${areaLine(p)} ` +
     `${amenitiesLine(p)} Connectivity to schools, hospitals and the metro is within easy reach, ` +
     `making it a balanced pick for both end-users and long-term investors.`,
   (p) =>
-    `Set in one of ${p.city}'s most sought-after addresses, this ${describeKind(p)} blends ` +
+    `Set in one of ${p.city ?? "India"}'s most sought-after addresses, this ${describeKind(p)} blends ` +
     `${furnishingLine(p)} with thoughtful design. ${areaLine(p)} Walk to cafés, ` +
     `green space and daily essentials. ${amenitiesLine(p)}`,
   (p) =>
-    `Move-in ready ${describeKind(p)} in ${p.locality}. ${areaLine(p)} ` +
+    `Move-in ready ${describeKind(p)}${p.locality ? ` in ${p.locality}` : ""}. ${areaLine(p)} ` +
     `${amenitiesLine(p)} Quiet street with secure gated access — strong rental yield in this ` +
-    `${p.city} micro-market over the last three years.`,
+    `${p.city ?? "local"} micro-market over the last three years.`,
   (p) =>
     `Smart-priced ${describeKind(p)} with sunlit rooms and tasteful finishes. ${areaLine(p)} ` +
-    `Located in ${p.locality} — fast becoming one of ${p.city}'s standout corridors. ` +
+    `${p.locality ? `Located in ${p.locality} — fast becoming one of ${p.city ?? "the city"}'s standout corridors. ` : ""}` +
     `${amenitiesLine(p)}`,
 ];
 
 function templateDescription(p: Input): string {
-  const idx = Math.abs(hash(p.title + p.locality + p.kind)) % TEMPLATES.length;
+  const idx = Math.abs(hash(p.title + (p.locality ?? "") + p.kind)) % TEMPLATES.length;
   return TEMPLATES[idx](p);
 }
 

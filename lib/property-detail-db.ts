@@ -154,3 +154,21 @@ export async function loadPropertyDetailFromDb(id: string): Promise<PropertyDeta
     },
   };
 }
+
+export interface NearbyCustomEntry {
+  id: string;
+  name: string;
+  category: import("./property-poi").PoiCategory;
+  distanceKm: number;
+}
+
+export async function getPropertyNearbyCustom(propertyId: string): Promise<NearbyCustomEntry[]> {
+  if (process.env.USE_DB !== "1") return [];
+  const r = await prisma.property.findUnique({
+    where: { id: propertyId },
+    select: { nearbyCustom: true },
+  }).catch(() => null);
+  if (!r?.nearbyCustom) return [];
+  const arr = Array.isArray(r.nearbyCustom) ? r.nearbyCustom : [];
+  return arr as unknown as NearbyCustomEntry[];
+}

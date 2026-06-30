@@ -72,7 +72,7 @@ export function LocationChip({ className }: { className?: string }) {
         type="button"
         onClick={() => setOpen((v) => !v)}
         title={location ? `${location.city || "Unknown"}, ${location.state} · source: ${sourceLabel}` : "Set your location"}
-        className="hidden h-10 items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-3.5 text-sm font-medium text-ink-700 shadow-soft transition hover:border-brand-500/40 hover:text-ink-900 md:inline-flex"
+        className="inline-flex h-10 w-full items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-3.5 text-sm font-medium text-ink-700 shadow-soft transition hover:border-brand-500/40 hover:text-ink-900 md:w-auto"
       >
         {requesting ? (
           <Loader2 className="h-4 w-4 animate-spin text-brand-500" />
@@ -85,7 +85,7 @@ export function LocationChip({ className }: { className?: string }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-[320px] rounded-2xl border border-ink-200 bg-white p-3 shadow-lift">
+        <div className="absolute left-0 right-0 z-50 mt-2 w-full min-w-[280px] rounded-2xl border border-ink-200 bg-white p-3 shadow-lift md:left-auto md:right-0 md:w-[320px]">
           {/* Current value */}
           {location ? (
             <div className="flex items-start gap-2 rounded-xl bg-ink-50/60 px-3 py-2">

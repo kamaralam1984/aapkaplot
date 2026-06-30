@@ -190,10 +190,13 @@ export function NewListingForm({ propertyId, initial }: NewListingFormProps = {}
         return;
       }
       if (!res.ok) {
+        const fieldErrors = data.issues?.fieldErrors;
+        const firstField = fieldErrors && Object.keys(fieldErrors)[0];
+        const firstMsg = firstField ? `${firstField}: ${fieldErrors[firstField][0]}` : null;
         toast.show({
           kind: "error",
           title: "Couldn't publish",
-          description: data.message ?? data.error ?? "Please try again.",
+          description: firstMsg ?? data.message ?? data.error ?? "Please try again.",
         });
         return;
       }
@@ -928,14 +931,14 @@ function AiDescribeButton({
 }) {
   const [busy, setBusy] = useState(false);
   const toast = useToast();
-  const disabled = !draft.kind || draft.title.trim().length < 4 || draft.locality.trim().length < 2;
+  const disabled = !draft.kind || draft.title.trim().length < 4;
 
   const run = async () => {
     if (disabled) {
       toast.show({
         kind: "info",
         title: "Need a bit more info",
-        description: "Fill title, type and locality first.",
+        description: "Fill title and property type first.",
       });
       return;
     }

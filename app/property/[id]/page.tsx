@@ -31,7 +31,7 @@ import {
   getPropertyDetail,
   getSimilarProperties,
 } from "@/lib/property-detail";
-import { loadPropertyDetailFromDb } from "@/lib/property-detail-db";
+import { loadPropertyDetailFromDb, getPropertyNearbyCustom } from "@/lib/property-detail-db";
 import { getSession } from "@/lib/auth-server";
 import type { PropertyDetail } from "@/lib/types";
 
@@ -51,10 +51,9 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-// Re-render at most once per minute so DB-backed listings reflect edits
-// quickly — the previous "static-by-default" behaviour cached an old
-// areaSqft=0 render and never picked up subsequent updates.
-export const revalidate = 60;
+// Always server-render so session-based UI (edit buttons, owner controls)
+// reflects the actual logged-in user on every request.
+export const dynamic = "force-dynamic";
 
 export async function generateStaticParams() {
   return getAllPropertyIds().map((id) => ({ id }));
@@ -90,11 +89,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function PropertyDetailPage({ params }: PageProps) {
   const { id } = await params;
   const [property, session] = await Promise.all([resolveProperty(id), getSession()]);
+  const nearbyCustom = property ? await getPropertyNearbyCustom(id) : [];
   if (!property) notFound();
 
   // Sellers should not see "Make an offer" / phone-reveal on their own
   // listing — that's the source of the cannot_offer_own surprise.
   const isOwner = Boolean(session && session.uid === property.owner.id);
+  const superAdminEmails = (process.env.SUPER_ADMIN_EMAILS ?? "").split(",").map((e) => e.trim().toLowerCase());
+  const isAdmin = Boolean(session && (
+    session.role === "admin" || session.role === "super_admin" ||
+    (session.email && superAdminEmails.includes(session.email.toLowerCase()))
+  ));
+  const canEditNearby = isOwner || isAdmin;
+  console.log("[canEdit]", { email: session?.email, role: session?.role, uid: session?.uid, ownerUid: property.owner.id, isOwner, isAdmin, canEditNearby, superAdminEmails });
 
   const similar = getSimilarProperties(property.id, 8);
   const similarWithDistance = withinRadius(property.location.coords, similar, 200);
@@ -255,6 +262,9 @@ export default async function PropertyDetailPage({ params }: PageProps) {
                 <PropertyAINearby
                   lat={property.location.coords.lat}
                   lng={property.location.coords.lng}
+                  propertyId={property.id}
+                  nearbyCustom={nearbyCustom}
+                  canEdit={canEditNearby}
                 />
               </div>
 

@@ -13,7 +13,7 @@ const PHOTO = z.object({ name: z.string().min(1), url: z.string().min(1) });
 const Body = z.object({
   intent: z.enum(["buy", "rent", "sell"]),
   kind: z.enum(["plot", "flat", "house", "villa", "shop", "office", "warehouse", "agriculture"]),
-  title: z.string().min(6).max(120),
+  title: z.string().min(6).max(300),
   description: z.string().max(4000).optional().default(""),
   bhk: z.number().int().min(1).max(20).optional(),
   areaSqft: z.number().int().min(50).max(1_000_000).optional(),

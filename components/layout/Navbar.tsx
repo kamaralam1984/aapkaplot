@@ -98,6 +98,12 @@ export function Navbar() {
       {mobileOpen && (
         <div className="akp-fade-in md:hidden border-t border-ink-200/70 bg-white/95 backdrop-blur-xl">
           <Container className="flex flex-col gap-1 py-3">
+            {/* Location selector in mobile menu */}
+            <div className="mb-1 rounded-xl border border-ink-200/70 bg-ink-50/50 px-3 py-2">
+              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-500">Your Location</p>
+              <LocationChip className="block" />
+            </div>
+
             {NAV_LINKS.map((l) => (
               <Link
                 key={l.href}

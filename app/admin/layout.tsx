@@ -13,16 +13,24 @@ export default async function AdminLayout({
   const session = await getSession();
   if (!session) redirect("/auth/login?next=/admin");
 
-  // Strict role check. When the DB is on, trust the DB; otherwise fall back
-  // to the role baked into the signed session cookie.
+  // Role check: DB role (when USE_DB=1) OR session role OR SUPER_ADMIN_EMAILS allowlist.
+  const superAdminEmails = (process.env.SUPER_ADMIN_EMAILS ?? "").split(",").map((e) => e.trim().toLowerCase());
+  const emailIsAdmin = !!session.email && superAdminEmails.includes(session.email.toLowerCase());
+
   if (process.env.USE_DB === "1") {
     const u = await prisma.user
       .findUnique({ where: { id: session.uid }, select: { role: true } })
       .catch(() => null);
-    if (u?.role !== "ADMIN" && u?.role !== "SUPER_ADMIN") {
+    // Allow if DB role is admin/super_admin, OR email is in the allowlist
+    const dbOk = u?.role === "ADMIN" || u?.role === "SUPER_ADMIN";
+    if (!dbOk && !emailIsAdmin) {
       redirect("/?error=forbidden");
     }
-  } else if (!isAdminRole(session.role)) {
+    // Promote DB role to SUPER_ADMIN on first admin access if email matches
+    if (!dbOk && emailIsAdmin && u) {
+      await prisma.user.update({ where: { id: session.uid }, data: { role: "SUPER_ADMIN" } }).catch(() => null);
+    }
+  } else if (!isAdminRole(session.role) && !emailIsAdmin) {
     redirect("/?error=forbidden");
   }
 
