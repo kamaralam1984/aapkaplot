@@ -1,7 +1,7 @@
 import {
   Sparkles, Train, TrainFront, Plane, Hospital, School, GraduationCap,
   ShoppingBag, ShoppingCart, Utensils, Banknote, CreditCard, Shield,
-  Fuel, Trees, Landmark, Building2, Bus, Star, Store, MapPinned,
+  Fuel, Trees, Landmark, Building2, Bus, Star, Store, MapPinned, Dumbbell, Waves, MapPin,
 } from "lucide-react";
 import { fetchPropertyPois, type PoiCategory, type Poi, CATEGORY_ORDER, poiDistanceLabel } from "@/lib/property-poi";
 import { NearbyCustomEditor } from "./NearbyCustomEditor";
@@ -41,6 +41,9 @@ const META: Record<PoiCategory, { label: string; icon: React.ReactNode; tone: st
   bus_stop:     { label: "Bus stops",       icon: <Bus className="h-4 w-4" />,          tone: "bg-sky-50 text-sky-700" },
   place_of_worship: { label: "Temples / Mosque / Church", icon: <Star className="h-4 w-4" />, tone: "bg-orange-50 text-orange-700" },
   market:       { label: "Markets / Bazaar", icon: <Store className="h-4 w-4" />,       tone: "bg-amber-50 text-amber-700" },
+  water_park:   { label: "Water / Amusement Parks", icon: <Waves className="h-4 w-4" />, tone: "bg-cyan-50 text-cyan-700" },
+  gym:          { label: "Gyms / Fitness",   icon: <Dumbbell className="h-4 w-4" />,    tone: "bg-purple-50 text-purple-700" },
+  other:        { label: "Other",            icon: <MapPin className="h-4 w-4" />,       tone: "bg-ink-100 text-ink-700" },
 };
 
 /** Convert custom entries to display Poi objects (marked with isCustom). */

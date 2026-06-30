@@ -20,6 +20,8 @@ const CATEGORY_OPTIONS: { value: Category; label: string }[] = [
   { value: "hospital",        label: "🏥 Hospital" },
   { value: "place_of_worship",label: "🛕 Mandir / Mosque / Church" },
   { value: "park",            label: "🌳 Park / Garden" },
+  { value: "water_park",      label: "🎢 Water Park / Amusement Park" },
+  { value: "gym",             label: "💪 Gym / Fitness Center" },
   { value: "market",          label: "🏪 Market / Bazaar" },
   { value: "railway",         label: "🚂 Railway Station" },
   { value: "bus_stop",        label: "🚌 Bus Stop / Stand" },
@@ -33,6 +35,7 @@ const CATEGORY_OPTIONS: { value: Category; label: string }[] = [
   { value: "restaurant",      label: "🍽️ Restaurant" },
   { value: "tourism",         label: "🏛️ Tourist Spot" },
   { value: "historical",      label: "🏺 Heritage Site" },
+  { value: "other",           label: "📍 Other / Custom" },
 ];
 
 interface Props {

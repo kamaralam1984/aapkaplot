@@ -23,7 +23,8 @@ export type PoiCategory =
   | "mall" | "supermarket" | "restaurant"
   | "bank" | "atm" | "police" | "fuel"
   | "park" | "historical" | "tourism"
-  | "bus_stop" | "place_of_worship" | "market";
+  | "bus_stop" | "place_of_worship" | "market"
+  | "water_park" | "gym" | "other";
 
 export interface Poi {
   id: string;            // overpass element id
@@ -244,7 +245,8 @@ const CATEGORY_ORDER: PoiCategory[] = [
   "hospital", "school", "college",
   "mall", "supermarket", "restaurant", "market",
   "bank", "atm", "police", "fuel",
-  "park", "place_of_worship", "tourism", "historical",
+  "park", "water_park", "gym", "place_of_worship", "tourism", "historical",
+  "other",
 ];
 
 function poiDistanceLabel(p: Poi): string {

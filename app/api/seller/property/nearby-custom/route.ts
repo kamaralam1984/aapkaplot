@@ -13,6 +13,7 @@ const EntrySchema = z.object({
     "mall", "supermarket", "restaurant", "bank", "atm",
     "police", "fuel", "park", "tourism", "historical",
     "bus_stop", "place_of_worship", "market",
+    "water_park", "gym", "other",
   ]),
   distanceKm: z.number().min(0).max(100),
 });
